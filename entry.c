@@ -29,9 +29,7 @@ int main(int argc, char *argv) {
 
 
     FILE* filePtr;
-    if ( (filePtr = fopen("./files/text1.txt", "r")) != NULL) {
-        printf("file pointer is %p\n", filePtr);
-    } else {
+    if ( (filePtr = fopen("./files/text1.txt", "r")) == NULL) {
         fprintf(stderr, "could not open file: [%p], err: %d, %s\n", filePtr, errno, strerror(errno));
         exit(EXIT_FAILURE);
     }
@@ -41,24 +39,16 @@ int main(int argc, char *argv) {
     size_t len = 0;
     char *line = NULL;
     while (getline(&line, &len, filePtr) != -1) {
-        printf("%s", line);
         enQueue(q, line, len); 
     }
     fclose(filePtr);
-
-    printf("Queue Front : %s", q->front->line); 
-    printf("Queue Front : %s", q->front->next->line);
-	printf("Queue Rear : %s", q->rear->line); 
 
     hashtable *hashMap = createtable(50000);
     struct node *node = NULL;
 
     free(line);
     while (q->front) {
-        // printf("%p\n", q->front);
-        // printf("%p\n", q->front->next);
         
-        printf("-------------------line: %s, num: %zu\n", q->front->line, q->front->len);
         char str[q->front->len];
         strcpy(str,q->front->line);
         char *token;
