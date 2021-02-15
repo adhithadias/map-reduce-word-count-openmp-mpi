@@ -22,7 +22,6 @@ void format_string(char *original, char *word, int len) {
         }
     }
     word[c]='\0';
-    len=strlen(word);
 }
 
 int main(int argc, char *argv) {
@@ -53,7 +52,6 @@ int main(int argc, char *argv) {
         strcpy(str,q->front->line);
         char *token;
         char *rest = str;
-        int length = 0;
 
         // https://www.geeksforgeeks.org/strtok-strtok_r-functions-c-examples/
         while ((token = strtok_r(rest, " ", &rest))) {
@@ -79,36 +77,3 @@ int main(int argc, char *argv) {
 
     return EXIT_SUCCESS;
 }
-
-// // Driver Program to test anove functions 
-// int main() 
-// { 
-//     printf("starting\n");
-// 	struct Queue* q = createQueue(); 
-//     printf("queue created\n");
-	
-//     char* line = malloc(100*sizeof(char));
-//     memset(line, '\0', sizeof(line));
-//     strcpy(line, "Adhitha Dias");
-//     enQueue(q, line, 12); 
-	
-//     line = malloc(100*sizeof(char));
-//     memset(line, '\0', sizeof(line));
-//     strcpy(line, "Kariyawasam");
-//     enQueue(q, line, 20); 
-// 	deQueue(q); 
-// 	// deQueue(q); 
-// 	// enQueue(q, 30); 
-// 	// enQueue(q, 40); 
-// 	// enQueue(q, 50); 
-// 	// deQueue(q); 
-// 	printf("Queue Front : %s \n", q->front->line); 
-// 	printf("Queue Rear : %s \n", q->rear->line); 
-	
-//     while (q->front) {
-//         deQueue(q);
-//     }
-//     free(q);
-    
-//     return 0; 
-// } 
