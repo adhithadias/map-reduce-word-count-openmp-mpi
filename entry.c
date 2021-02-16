@@ -24,7 +24,7 @@ void format_string(char *original, char *word, int len) {
     word[c]='\0';
 }
 
-int main(int argc, char *argv) {
+int main(int argc, char **argv) {
 
 
     FILE* filePtr;
