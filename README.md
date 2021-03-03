@@ -1,6 +1,6 @@
 ## Running the program
 
 ```bash
-gcc entry.c -o entry
+gcc serial.c -o serial -fopenmp
 ./entry
 ```
