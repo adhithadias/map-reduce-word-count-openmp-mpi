@@ -64,6 +64,7 @@ void populateHashMap(struct Queue *q, struct hashtable *hashMap) {
     }
 }
 
+<<<<<<< HEAD
 void reduce(struct hashtable **hash_tables, struct hashtable *final_table, int location) {
     struct node *node = NULL;
     for (int i=0; i<NUM_FILES; i++) {
@@ -85,6 +86,8 @@ void reduce(struct hashtable **hash_tables, struct hashtable *final_table, int l
     }
 }
 
+=======
+>>>>>>> efdc11fe9964de1ff44605c78dea8c132fddbc25
 int main(int argc, char **argv) {
 
     omp_set_num_threads(NUM_THREADS);
@@ -94,8 +97,13 @@ int main(int argc, char **argv) {
     struct Queue **queues;
     struct hashtable **hash_tables;
 
+<<<<<<< HEAD
     queues = (struct Queue**) malloc(sizeof(struct Queue*)*NUM_FILES);
     hash_tables = (struct hashtable**) malloc(sizeof(struct hashtable*)*NUM_FILES);
+=======
+    queues = (struct Queue**) malloc(sizeof(struct Queue*)*15);
+    hash_tables = (struct hashtable**) malloc(sizeof(struct hashtable*)*15);
+>>>>>>> efdc11fe9964de1ff44605c78dea8c132fddbc25
 
     // consider allocating the memory before execution and during execution
     // there maybe few cache misses depending on the 2 different approaches
@@ -113,6 +121,7 @@ int main(int argc, char **argv) {
         populateHashMap(queues[i], hash_tables[i]);
     }
 
+<<<<<<< HEAD
     // #pragma omp parallel sections
     // {
     //     #pragma omp parallel section // reading
@@ -159,6 +168,9 @@ int main(int argc, char **argv) {
     //         reduce(hash_tables, final_table, i);
     //     }
     // }
+=======
+    // add reduction section here
+>>>>>>> efdc11fe9964de1ff44605c78dea8c132fddbc25
 
     // clear the heap allocations
     #pragma omp parallel for
@@ -169,6 +181,7 @@ int main(int argc, char **argv) {
     }
     free(queues);
     free(hash_tables);
+<<<<<<< HEAD
 
     // printTable(final_table);
 
@@ -176,6 +189,11 @@ int main(int argc, char **argv) {
     printf("total time taken for the execution: %f\n", time);
     
 
+=======
+    
+    time += omp_get_wtime();
+    printf("total time taken for the execution: %f\n", time);
+>>>>>>> efdc11fe9964de1ff44605c78dea8c132fddbc25
 
     return EXIT_SUCCESS;
 }
