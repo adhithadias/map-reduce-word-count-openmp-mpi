@@ -135,6 +135,9 @@ int main(int argc, char **argv) {
         }
     }
 
+    // printTable(final_table);
+    writeFullTable(final_table, "./output/serial/0.txt");
+
     // clear the heap allocations
     for (i=0; i<NUM_FILES; i++) {
         free(queues[i]);
@@ -143,8 +146,6 @@ int main(int argc, char **argv) {
     }
     free(queues);
     free(hash_tables);
-
-    // printTable(final_table);
 
     time += omp_get_wtime();
     printf("total time taken for the execution: %f\n", time);

@@ -116,24 +116,47 @@ int main(int argc, char **argv) {
         populateQueue(queues[i], i+1);
         queues[i]->finished = 1;
 
-        hash_tables[i] = createtable(50000);
+        hash_tables[i] = createtable(CAPACITY);
         populateHashMap(queues[i], hash_tables[i]);
     }
 
-    struct hashtable *final_table = createtable(50000);
+    struct hashtable *final_table = createtable(CAPACITY);
     // add reduction section here
     #pragma omp parallel shared(final_table, hash_tables)
     {
         int threadn = omp_get_thread_num();
         int tot_threads = omp_get_num_threads();
-        int i;
-        for (i=threadn; i<50000; i+=tot_threads) {
-            // int location_in_table = i*omp_get_thread_num();
-            // printf("i: %d, threadn: %d, tot_threads: %d\n", i, threadn, tot_threads);
-            if (i<50000) {
-                reduce(hash_tables, final_table, i);
-            }
+        int interval = CAPACITY / tot_threads;
+        int start = threadn * interval;
+        int end = start + interval;
+
+        if (end > final_table->tablesize) {
+          end = final_table->tablesize;
         }
+
+        int i;
+        for (i=start; i<end; i++) {
+            reduce(hash_tables, final_table, i);
+        }
+    }
+
+    // printTable(final_table);
+    // writeTable(final_table, "output/parallel/0.txt");
+    
+    #pragma omp parallel shared(final_table)
+    {
+        int threadn = omp_get_thread_num();
+        int tot_threads = omp_get_num_threads();
+        int interval = CAPACITY / tot_threads;
+        int start = threadn * interval;
+        int end = start + interval;
+        if (end > final_table->tablesize) {
+          end = final_table->tablesize;
+        }
+        char *filename = (char*) malloc(sizeof(char)*30);
+        sprintf(filename, "output/parallel/%d.txt", threadn);
+
+        writePartialTable(final_table, filename, start, end);
     }
 
     // clear the heap allocations
@@ -145,8 +168,6 @@ int main(int argc, char **argv) {
     }
     free(queues);
     free(hash_tables);
-
-    // printTable(final_table);
 
     time += omp_get_wtime();
     printf("total time taken for the execution: %f\n", time);
