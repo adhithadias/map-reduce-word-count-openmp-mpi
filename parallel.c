@@ -120,27 +120,6 @@ int main(int argc, char **argv) {
         populateHashMap(queues[i], hash_tables[i]);
     }
 
-    // #pragma omp parallel sections
-    // {
-    //     #pragma omp section // reading
-    //     {
-    //         #pragma omp parallel for shared(queues)
-    //         for (i=0; i<NUM_FILES; i++) {
-    //             queues[i] = createQueue();
-    //             populateQueue(queues[i], i+1);
-    //             queues[i]->finished = 1;
-    //         }
-    //     }
-    //     #pragma omp section // mapping
-    //     {
-    //         #pragma omp parallel for shared(hash_tables) 
-    //         for (i=0; i<NUM_FILES; i++) {
-    //             hash_tables[i] = createtable(50000);
-    //             populateHashMap(queues[i], hash_tables[i]);
-    //         }
-    //     }
-    // }
-
     struct hashtable *final_table = createtable(50000);
     // add reduction section here
     #pragma omp parallel shared(final_table, hash_tables)
@@ -156,17 +135,6 @@ int main(int argc, char **argv) {
             }
         }
     }
-
-    // struct hashtable *final_table = createtable(50000);
-    // // int threadn = omp_get_thread_num();
-    // // int tot_threads = omp_get_num_threads();
-    // for (int i=0; i<50000; i++) {
-    //     // int location_in_table = i*omp_get_thread_num();
-    //     // printf("i: %d, threadn: %d, tot_threads: %d\n", i, threadn, tot_threads);
-    //     if (i<50000) {
-    //         reduce(hash_tables, final_table, i);
-    //     }
-    // }
 
     // clear the heap allocations
     #pragma omp parallel for
