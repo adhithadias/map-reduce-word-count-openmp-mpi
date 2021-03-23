@@ -294,7 +294,8 @@ void printTable(struct hashtable *h){
         /* Deallocate memory of every node in the table */
         int spaces = 0;
         while(current != NULL) {
-            for (int j=0; j<spaces; j++) {
+            int j;
+            for (j=0; j<spaces; j++) {
                 printf("\t");
             }
             printf("i: %d, key: %s, frequency: %d\n", i, current->key, current->frequency);
