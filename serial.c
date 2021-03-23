@@ -117,15 +117,8 @@ int main(int argc, char **argv) {
 
     queues = (struct Queue**) malloc(sizeof(struct Queue*)*NUM_FILES);
     hash_tables = (struct hashtable**) malloc(sizeof(struct hashtable*)*NUM_FILES);
-
-    // consider allocating the memory before execution and during execution
-    // there maybe few cache misses depending on the 2 different approaches
  
     int i;
-    // consider using sections and run both the reading and mapping
-    // at the same time, a variable can be used in the queue to 
-    // indicate the reader status -- whether reading is finished or not
-    // #pragma omp parallel for shared(queues, hash_tables)
     for (i=0; i<NUM_FILES; i++) {
         queues[i] = createQueue();
         populateQueue(queues[i], i+1);
@@ -135,58 +128,14 @@ int main(int argc, char **argv) {
         populateHashMap(queues[i], hash_tables[i]);
     }
 
-    // #pragma omp parallel sections
-    // {
-    //     #pragma omp section // reading
-    //     {
-    //         #pragma omp parallel for shared(queues)
-    //         for (i=0; i<NUM_FILES; i++) {
-    //             queues[i] = createQueue();
-    //             populateQueue(queues[i], i+1);
-    //             queues[i]->finished = 1;
-    //         }
-
-    //     }
-    //     #pragma omp section // mapping
-    //     {
-    //         #pragma omp parallel for shared(hash_tables) 
-    //         for (i=0; i<NUM_FILES; i++) {
-    //             hash_tables[i] = createtable(50000);
-    //             populateHashMap(queues[i], hash_tables[i]);
-    //         }
-
-    //     }
-
-    // }
-
-    // struct hashtable *final_table = createtable(50000);
-    // #pragma omp parallel shared(final_table, hash_tables)
-    // {
-    //     int threadn = omp_get_thread_num();
-    //     int tot_threads = omp_get_num_threads();
-    //     int i;
-    //     for (i=threadn; i<50000; i+=tot_threads) {
-    //         // int location_in_table = i*omp_get_thread_num();
-    //         // printf("i: %d, threadn: %d, tot_threads: %d\n", i, threadn, tot_threads);
-    //         if (i<50000) {
-    //             reduce(hash_tables, final_table, i);
-    //         }
-    //     }
-    // }
-
     struct hashtable *final_table = createtable(50000);
-    // int threadn = omp_get_thread_num();
-    // int tot_threads = omp_get_num_threads();
     for (int i=0; i<50000; i++) {
-        // int location_in_table = i*omp_get_thread_num();
-        // printf("i: %d, threadn: %d, tot_threads: %d\n", i, threadn, tot_threads);
         if (i<50000) {
             reduce(hash_tables, final_table, i);
         }
     }
 
     // clear the heap allocations
-    // #pragma omp parallel for
     for (i=0; i<NUM_FILES; i++) {
         free(queues[i]);
         // printTable(hash_tables[i]);
