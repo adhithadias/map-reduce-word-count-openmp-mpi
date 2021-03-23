@@ -11,6 +11,7 @@ struct QNode {
 } node; 
 
 struct Queue { 
+	int finished;
 	struct QNode *front, *rear; 
 } queue; 
 
@@ -28,6 +29,7 @@ struct Queue* createQueue()
 { 
 	struct Queue* q = (struct Queue*)malloc(sizeof(struct Queue)); 
 	q->front = q->rear = NULL; 
+	q->finished = 0;
 	return q; 
 } 
 
