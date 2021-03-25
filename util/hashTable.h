@@ -8,8 +8,6 @@
 #include <string.h>
 #include <stdbool.h>
 
-#define CAPACITY 50000
-
 
 struct node {
     char *key;

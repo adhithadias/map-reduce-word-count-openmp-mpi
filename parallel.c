@@ -9,6 +9,7 @@
 
 #define NUM_THREADS 16
 #define NUM_FILES 30
+#define HASH_CAPACITY 50000
 
 extern int errno ;
 
@@ -129,18 +130,18 @@ int main(int argc, char **argv) {
         populateQueue(queues[i], file_name);
         queues[i]->finished = 1;
 
-        hash_tables[i] = createtable(CAPACITY);
+        hash_tables[i] = createtable(HASH_CAPACITY);
         populateHashMap(queues[i], hash_tables[i]);
     }
     omp_destroy_lock(&writelock);
 
-    struct hashtable *final_table = createtable(CAPACITY);
+    struct hashtable *final_table = createtable(HASH_CAPACITY);
     // add reduction section here
     #pragma omp parallel shared(final_table, hash_tables)
     {
         int threadn = omp_get_thread_num();
         int tot_threads = omp_get_num_threads();
-        int interval = CAPACITY / tot_threads;
+        int interval = HASH_CAPACITY / tot_threads;
         int start = threadn * interval;
         int end = start + interval;
 
@@ -161,7 +162,7 @@ int main(int argc, char **argv) {
     {
         int threadn = omp_get_thread_num();
         int tot_threads = omp_get_num_threads();
-        int interval = CAPACITY / tot_threads;
+        int interval = HASH_CAPACITY / tot_threads;
         int start = threadn * interval;
         int end = start + interval;
         if (end > final_table->tablesize) {
