@@ -9,6 +9,8 @@
 
 extern int errno ;
 
+#define NUM_FILES 30
+
 void populateQueue(struct Queue *q, int i) {
     // format file name of the file to open
     char file_name[20] = "./files/";
@@ -61,22 +63,90 @@ void populateHashMap(struct Queue *q, struct hashtable *hashMap) {
     }
 }
 
+void reduce(struct hashtable **hash_tables, struct hashtable *final_table, int location) {
+    struct node *node = NULL;
+    int i;
+    for (i=0; i<NUM_FILES; i++) {
+        if (hash_tables[i] == NULL || hash_tables[i]->table[location] == NULL) {
+            continue;
+        }
+        // if (final_table->table[location] == NULL) {
+        //     final_table->table[location] = hash_tables[i]->table[location];
+        // }
+
+        struct node *current = hash_tables[i]->table[location];
+        if(current == NULL) continue;
+
+        while(current != NULL) {
+            node = add(final_table, current->key, 0);
+            node->frequency += current->frequency;
+            current = current->next ;
+        }
+    }
+}
+
 int main(int argc, char **argv) {
+
+    // double time = -omp_get_wtime();
+
+    // struct Queue *q = createQueue(); 
+    // int i;
+    // for (i=1; i<NUM_FILES; i++) {
+    //     populateQueue(q, i);
+    // }
+
+    // hashtable *hashMap = createtable(50000);
+    // populateHashMap(q, hashMap);
+
+    // free(q);
+    // // printTable(hashMap);
+    // freetable(hashMap);
+    
+    // time += omp_get_wtime();
+    // printf("total time taken for the execution: %f\n", time);
+
+    // return EXIT_SUCCESS;
+
+
+    // --------------------------------------------------------------------------------------------------
 
     double time = -omp_get_wtime();
 
-    struct Queue *q = createQueue(); 
-    for (int i=1; i<16; i++) {
-        populateQueue(q, i);
+    struct Queue **queues;
+    struct hashtable **hash_tables;
+
+    queues = (struct Queue**) malloc(sizeof(struct Queue*)*NUM_FILES);
+    hash_tables = (struct hashtable**) malloc(sizeof(struct hashtable*)*NUM_FILES);
+ 
+    int i;
+    for (i=0; i<NUM_FILES; i++) {
+        queues[i] = createQueue();
+        populateQueue(queues[i], i+1);
+        queues[i]->finished = 1;
+
+        hash_tables[i] = createtable(50000);
+        populateHashMap(queues[i], hash_tables[i]);
     }
 
-    hashtable *hashMap = createtable(50000);
-    populateHashMap(q, hashMap);
+    struct hashtable *final_table = createtable(50000);
+    for (int i=0; i<50000; i++) {
+        if (i<50000) {
+            reduce(hash_tables, final_table, i);
+        }
+    }
 
-    free(q);
-    // printTable(hashMap);
-    freetable(hashMap);
-    
+    // printTable(final_table);
+    writeFullTable(final_table, "./output/serial/0.txt");
+
+    // clear the heap allocations
+    for (i=0; i<NUM_FILES; i++) {
+        free(queues[i]);
+        // printTable(hash_tables[i]);
+        free(hash_tables[i]);
+    }
+    free(queues);
+    free(hash_tables);
+
     time += omp_get_wtime();
     printf("total time taken for the execution: %f\n", time);
 

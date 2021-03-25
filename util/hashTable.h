@@ -294,7 +294,8 @@ void printTable(struct hashtable *h){
         /* Deallocate memory of every node in the table */
         int spaces = 0;
         while(current != NULL) {
-            for (int j=0; j<spaces; j++) {
+            int j;
+            for (j=0; j<spaces; j++) {
                 printf("\t");
             }
             printf("i: %d, key: %s, frequency: %d\n", i, current->key, current->frequency);
@@ -304,8 +305,34 @@ void printTable(struct hashtable *h){
     }
 }
 
+void writePartialTable(struct hashtable *h, const char *filename, int start, int end){
+    /* Set all pointers to NULL */
+    struct node *current = NULL;
+    FILE *fp = fopen(filename, "w");
 
+    // different threads may write different parts of the hash table
+    // set the start end values for the loop accordingly
+    int i;
+    for(i = start; i < end; i++) {
+        current = h->table[i];
+        if(current == NULL)
+            continue;
+        /* Deallocate memory of every node in the table */
+        int spaces = 0;
+        while(current != NULL) {
+            int j;
+            for (j=0; j<spaces; j++) {
+                fprintf(fp, "\t");
+            }
+            fprintf(fp, "i: %d, key: %s, frequency: %d\n", i, current->key, current->frequency);
+            current = current->next ;
+            spaces++;
+        }
+    }
+}
 
-
+void writeFullTable(struct hashtable *h, const char *filename){
+  writePartialTable(h, filename, 0, h->tablesize);
+}
 
 #endif // HASHTABLE_H_INCLUDED

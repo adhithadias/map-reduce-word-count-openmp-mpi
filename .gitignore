@@ -1,0 +1,10 @@
+# ignore all -- workaround to ignore the executables
+*
+# Unignore all with extensions
+!*.*
+
+
+**.o
+
+output/parallel/**
+output/serial/**

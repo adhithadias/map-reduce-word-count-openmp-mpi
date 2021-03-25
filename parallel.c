@@ -8,7 +8,7 @@
 #include "util/util.h"
 
 #define NUM_THREADS 4
-#define NUM_FILES 15
+#define NUM_FILES 30
 
 extern int errno ;
 
@@ -40,7 +40,12 @@ void populateQueue(struct Queue *q, int i) {
 void populateHashMap(struct Queue *q, struct hashtable *hashMap) {
     struct node *node = NULL;
 
-    while (q->front) {
+    // wait until queue is good to start
+    while (q == NULL) {
+        continue;
+    }
+
+    while (q->front || !q->finished) {
         
         char str[q->front->len];
         strcpy(str,q->front->line);
@@ -66,7 +71,8 @@ void populateHashMap(struct Queue *q, struct hashtable *hashMap) {
 
 void reduce(struct hashtable **hash_tables, struct hashtable *final_table, int location) {
     struct node *node = NULL;
-    for (int i=0; i<NUM_FILES; i++) {
+    int i;
+    for (i=0; i<NUM_FILES; i++) {
         if (hash_tables[i] == NULL || hash_tables[i]->table[location] == NULL) {
             continue;
         }
@@ -108,69 +114,60 @@ int main(int argc, char **argv) {
     for (i=0; i<NUM_FILES; i++) {
         queues[i] = createQueue();
         populateQueue(queues[i], i+1);
+        queues[i]->finished = 1;
 
-        hash_tables[i] = createtable(50000);
+        hash_tables[i] = createtable(CAPACITY);
         populateHashMap(queues[i], hash_tables[i]);
     }
 
-    // #pragma omp parallel sections
-    // {
-    //     #pragma omp parallel section // reading
-    //     {
-    //         for (i=0; i<NUM_FILES; i++) {
-    //             queues[i] = createQueue();
-    //             populateQueue(queues[i], i+1);
-    //         }
-
-    //     }
-    //     #pragma omp parallel section // mappint
-    //     {
-    //         for (i=0; i<NUM_FILES; i++) {
-    //             hash_tables[i] = createtable(50000);
-    //             populateHashMap(queues[i], hash_tables[i]);
-    //         }
-
-    //     }
-
-    // }
-
-    struct hashtable *final_table = createtable(50000);
+    struct hashtable *final_table = createtable(CAPACITY);
     // add reduction section here
     #pragma omp parallel shared(final_table, hash_tables)
     {
         int threadn = omp_get_thread_num();
         int tot_threads = omp_get_num_threads();
-        for (int i=threadn; i<50000; i+=tot_threads) {
-            // int location_in_table = i*omp_get_thread_num();
-            // printf("i: %d, threadn: %d, tot_threads: %d\n", i, threadn, tot_threads);
-            if (i<50000) {
-                reduce(hash_tables, final_table, i);
-            }
+        int interval = CAPACITY / tot_threads;
+        int start = threadn * interval;
+        int end = start + interval;
+
+        if (end > final_table->tablesize) {
+          end = final_table->tablesize;
+        }
+
+        int i;
+        for (i=start; i<end; i++) {
+            reduce(hash_tables, final_table, i);
         }
     }
 
-    // struct hashtable *final_table = createtable(50000);
-    // // int threadn = omp_get_thread_num();
-    // // int tot_threads = omp_get_num_threads();
-    // for (int i=0; i<50000; i++) {
-    //     // int location_in_table = i*omp_get_thread_num();
-    //     // printf("i: %d, threadn: %d, tot_threads: %d\n", i, threadn, tot_threads);
-    //     if (i<50000) {
-    //         reduce(hash_tables, final_table, i);
-    //     }
-    // }
+    // printTable(final_table);
+    // writeTable(final_table, "output/parallel/0.txt");
+    
+    #pragma omp parallel shared(final_table)
+    {
+        int threadn = omp_get_thread_num();
+        int tot_threads = omp_get_num_threads();
+        int interval = CAPACITY / tot_threads;
+        int start = threadn * interval;
+        int end = start + interval;
+        if (end > final_table->tablesize) {
+          end = final_table->tablesize;
+        }
+        char *filename = (char*) malloc(sizeof(char)*30);
+        sprintf(filename, "output/parallel/%d.txt", threadn);
+
+        writePartialTable(final_table, filename, start, end);
+    }
 
     // clear the heap allocations
     #pragma omp parallel for
-    for (int i=0; i<NUM_FILES; i++) {
+    for (i=0; i<NUM_FILES; i++) {
         free(queues[i]);
         // printTable(hash_tables[i]);
         free(hash_tables[i]);
     }
     free(queues);
     free(hash_tables);
-
-    // printTable(final_table);
 
     time += omp_get_wtime();
     printf("total time taken for the execution: %f\n", time);
