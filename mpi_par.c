@@ -9,6 +9,8 @@
 #include "util/queue.h"
 
 #define FILE_NAME_BUF_SIZE 50
+#define TAG_COMM_REQ_DATA 0
+#define TAG_COMM_FILE_NAME 1
 
 
 void get_file_list(struct Queue *file_name_queue) {
@@ -54,26 +56,80 @@ int main(int argc, char **argv) {
     char buf[10]; 
     snprintf(buf, 10, "./pout/f%d", pid);
     outfile = fopen(buf, "w");
+    // outfile = stdout;
 
+    const int MAX_NUMBERS = 100;
+    int numbers[MAX_NUMBERS];
+    int recv_len = 0;
+
+    printf("hello\n");
+
+    MPI_Request request;
+    MPI_Status status;
+    int recv_pid;
+
+    int count = 0;
+    int done = 0;
+    int done_sent_p_count = 0;
+
+    struct Queue *file_name_queue;
     if (pid == 0) {
-        struct Queue *file_name_queue = createQueue();
-        get_file_list(file_name_queue);
+        file_name_queue = createQueue();
+      get_file_list(file_name_queue);
+    }
 
-        FILE *entry_file;
-
-        while(file_name_queue->front) {
-            entry_file = fopen(file_name_queue->front->line, "r");
-            if (entry_file == NULL)
-            {
-                fprintf(outfile, "File or directory - %s\n", file_name_queue->front->line);
-                fprintf(outfile, "Error : Failed to open entry file - %s\n", strerror(errno));
-            } else {
-                fprintf(outfile, "File or directory - %s\n", file_name_queue->front->line);
-                fclose(entry_file);
-            }
-            deQueue(file_name_queue);
+    while (!done) {
+        if (pid != 0) {
+            fprintf(outfile, "requesting data to process %d from process 0\n", pid);
+            MPI_Send(&pid, 1, MPI_INT, 0, TAG_COMM_REQ_DATA, MPI_COMM_WORLD);
+            fprintf(outfile, "send finished\n");
+        } else {
+            get_file_list(file_name_queue);        
+            fprintf(outfile, "process 0 is waiting for a request..\n");
+            MPI_Recv(&recv_pid, 1, MPI_INT, MPI_ANY_SOURCE,
+                    TAG_COMM_REQ_DATA, MPI_COMM_WORLD, &status);
         }
-    } 
+
+        if (pid == 0) {
+            fprintf(outfile, "process 0 received request from process %d\n", recv_pid);
+
+            // send back to the message received process
+            fprintf(outfile, "sending file name to recv_pid %d from process 0\n", recv_pid);
+            if (count > 0) {
+              char end[] = "."; // send only 1 character - this indicates that there is no more work
+              MPI_Send(end, 1, MPI_CHAR, status.MPI_SOURCE,
+                       TAG_COMM_FILE_NAME, MPI_COMM_WORLD);
+                done_sent_p_count++;
+              
+            } else {
+              MPI_Send(file_name_queue->front->line,
+                       file_name_queue->front->len, MPI_CHAR, status.MPI_SOURCE,
+                       TAG_COMM_FILE_NAME, MPI_COMM_WORLD);
+              count++;
+            }
+            if (done_sent_p_count == size-1) {
+              done = 1;
+            }
+
+        } else {
+            fprintf(outfile, "receiving file name to process %d\n", pid);
+            char *file_name = (char *) malloc(sizeof(char)*FILE_NAME_BUF_SIZE);
+            MPI_Status status;
+            MPI_Recv(file_name, MAX_NUMBERS, MPI_CHAR, 0, TAG_COMM_FILE_NAME, MPI_COMM_WORLD, &status);
+            MPI_Get_count(&status, MPI_CHAR, &recv_len);
+            fprintf(outfile, "received file name [%s] to pid %d from process 0, recv len %d\n", file_name, pid, recv_len);
+
+            if (recv_len == 1) {
+              done = 1;
+            } else {
+                // process file -- do work related to reading
+            }
+        }
+        fprintf(outfile, "pid: %d, done: %d\n", pid, done);
+    }
+
+    MPI_Barrier(MPI_COMM_WORLD);
+    // this indicates the end of reading section of the MPI
 
     MPI_Finalize();
     return 0;
