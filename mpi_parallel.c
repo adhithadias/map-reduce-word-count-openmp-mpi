@@ -15,6 +15,7 @@
 #define FILE_NAME_BUF_SIZE 50
 #define TAG_COMM_REQ_DATA 0
 #define TAG_COMM_FILE_NAME 1
+#define TAG_COMM_PAIR_LIST 3
 #define WORD_MAX_LENGTH 50
 
 typedef struct {
@@ -223,11 +224,12 @@ int main(int argc, char **argv) {
 
   // ---
 
-  if (pid == 1) {
+  int k = 0;
+  if (pid != k) {
     int j = 0;
     pair pairs[CAPACITY];
     struct node *current = NULL;
-    for (int i = 0; i < h_space; i++) {
+    for (int i = h_space*k; i < h_space*(k+1); i++) {
       current = hash_table->table[i];
       if (current == NULL) continue;
       while (current != NULL) {
@@ -241,29 +243,33 @@ int main(int argc, char **argv) {
 
     fprintf(outfile, "total words to send: %d\n", j);
 
-    MPI_Send(pairs, j, istruct, 0, 3, MPI_COMM_WORLD);
+    MPI_Send(pairs, j, istruct, k, TAG_COMM_PAIR_LIST, MPI_COMM_WORLD);
     fprintf(outfile, "total words sent: %d\n", j);
-  } else if (pid == 0) {
-    int recv_j = 0;
-    pair recv_pairs[CAPACITY];
-    MPI_Recv(recv_pairs, CAPACITY, istruct, 1, 3, MPI_COMM_WORLD, &status);
-    MPI_Get_count(&status, istruct, &recv_j);
-    fprintf(outfile, "total words to received: %d\n", recv_j);
+  } else if (pid == k) {
+    for (int pr = 0; pr < size - 1; pr++) {
+      int recv_j = 0;
+      pair recv_pairs[CAPACITY];
+      MPI_Recv(recv_pairs, CAPACITY, istruct, MPI_ANY_SOURCE, TAG_COMM_PAIR_LIST, MPI_COMM_WORLD, &status);
+      MPI_Get_count(&status, istruct, &recv_j);
+      fprintf(outfile, "total words to received: %d from source: %d\n", recv_j, status.MPI_SOURCE);
 
-    for (int i = 0; i<recv_j; i++) {
-      pair recv_pair = recv_pairs[i];
-      int frequency = recv_pair.count;
+      for (int i = 0; i<recv_j; i++) {
+        pair recv_pair = recv_pairs[i];
+        int frequency = recv_pair.count;
 
-      struct node *node = add(hash_table, recv_pair.word, 0);
-      node->frequency += recv_pair.count;
+        struct node *node = add(hash_table, recv_pair.word, 0);
+        node->frequency += recv_pair.count;
+      }
     }
   }
+
+  MPI_Barrier(MPI_COMM_WORLD);
 
   // --------------------------------------------------------------
 
   // write function should be only called for the respective section of the
-  // writeTable(hash_table, outfile, h_start, h_end);
-  writeTable(hash_table, outfile, 0, hash_table->tablesize);
+  writeTable(hash_table, outfile, h_start, h_end);
+  // writeTable(hash_table, outfile, 0, hash_table->tablesize);
 
   MPI_Finalize();
   return 0;
