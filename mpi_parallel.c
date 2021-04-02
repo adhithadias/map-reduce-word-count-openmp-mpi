@@ -206,7 +206,6 @@ int main(int argc, char **argv) {
   // [0, CAPACITY/size] values from all the processes should be sent to 0th
   // process [CAPACITY/size, CAPACITY/size*2] values from all the ps should be
   // sent to 1st process likewise all data should be shared among the processes
-  
 
   // --------- DEFINE THE STRUCT DATA TYPE TO SEND
   const int nfields = 3;
@@ -225,40 +224,44 @@ int main(int argc, char **argv) {
   // ---
 
   int k = 0;
-  if (pid != k) {
-    int j = 0;
-    pair pairs[CAPACITY];
-    struct node *current = NULL;
-    for (int i = h_space*k; i < h_space*(k+1); i++) {
-      current = hash_table->table[i];
-      if (current == NULL) continue;
-      while (current != NULL) {
-        pairs[j].count = current->frequency;
-        pairs[j].hash = i;
-        strcpy(pairs[j].word, current->key);
-        j++;
-        current = current->next;
+  for (k = 0; k < size; k++) {
+    if (pid != k) {
+      int j = 0;
+      pair pairs[CAPACITY];
+      struct node *current = NULL;
+      for (int i = h_space * k; i < h_space * (k + 1); i++) {
+        current = hash_table->table[i];
+        if (current == NULL) continue;
+        while (current != NULL) {
+          pairs[j].count = current->frequency;
+          pairs[j].hash = i;
+          strcpy(pairs[j].word, current->key);
+          j++;
+          current = current->next;
+        }
       }
-    }
 
-    fprintf(outfile, "total words to send: %d\n", j);
+      fprintf(outfile, "total words to send: %d\n", j);
 
-    MPI_Send(pairs, j, istruct, k, TAG_COMM_PAIR_LIST, MPI_COMM_WORLD);
-    fprintf(outfile, "total words sent: %d\n", j);
-  } else if (pid == k) {
-    for (int pr = 0; pr < size - 1; pr++) {
-      int recv_j = 0;
-      pair recv_pairs[CAPACITY];
-      MPI_Recv(recv_pairs, CAPACITY, istruct, MPI_ANY_SOURCE, TAG_COMM_PAIR_LIST, MPI_COMM_WORLD, &status);
-      MPI_Get_count(&status, istruct, &recv_j);
-      fprintf(outfile, "total words to received: %d from source: %d\n", recv_j, status.MPI_SOURCE);
+      MPI_Send(pairs, j, istruct, k, TAG_COMM_PAIR_LIST, MPI_COMM_WORLD);
+      fprintf(outfile, "total words sent: %d\n", j);
+    } else if (pid == k) {
+      for (int pr = 0; pr < size - 1; pr++) {
+        int recv_j = 0;
+        pair recv_pairs[CAPACITY];
+        MPI_Recv(recv_pairs, CAPACITY, istruct, MPI_ANY_SOURCE,
+                 TAG_COMM_PAIR_LIST, MPI_COMM_WORLD, &status);
+        MPI_Get_count(&status, istruct, &recv_j);
+        fprintf(outfile, "total words to received: %d from source: %d\n",
+                recv_j, status.MPI_SOURCE);
 
-      for (int i = 0; i<recv_j; i++) {
-        pair recv_pair = recv_pairs[i];
-        int frequency = recv_pair.count;
+        for (int i = 0; i < recv_j; i++) {
+          pair recv_pair = recv_pairs[i];
+          int frequency = recv_pair.count;
 
-        struct node *node = add(hash_table, recv_pair.word, 0);
-        node->frequency += recv_pair.count;
+          struct node *node = add(hash_table, recv_pair.word, 0);
+          node->frequency += recv_pair.count;
+        }
       }
     }
   }
