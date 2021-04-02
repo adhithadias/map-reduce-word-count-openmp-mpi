@@ -198,30 +198,14 @@ int main(int argc, char **argv) {
    * add reduction - hashtable should be communicated amoung the
    * processes to come up with the final reduction
    */
-  int h_start = CAPACITY / size * pid;
-  int h_end = CAPACITY / size * (pid + 1);
+  int h_space = CAPACITY / size;
+  int h_start = h_space * pid;
+  int h_end = h_space * (pid + 1);
   fprintf(outfile, "start [%d] end [%d]\n", h_start, h_end);
   // [0, CAPACITY/size] values from all the processes should be sent to 0th
   // process [CAPACITY/size, CAPACITY/size*2] values from all the ps should be
   // sent to 1st process likewise all data should be shared among the processes
-  pair pairs[CAPACITY];
-  pair recv_pairs[CAPACITY];
-  struct node *current = NULL;
-  int j = 0;
-  int recv_j = 0;
-  for (int i = h_start; i < h_end; i++) {
-    current = hash_table->table[i];
-    if (current == NULL) continue;
-    while (current != NULL) {
-      pairs[j].count = current->frequency;
-      pairs[j].hash = i;
-      strcpy(pairs[j].word, current->key);
-      j++;
-      current = current->next;
-    }
-  }
-
-  fprintf(outfile, "total words to send: %d\n", j);
+  
 
   // --------- DEFINE THE STRUCT DATA TYPE TO SEND
   const int nfields = 3;
@@ -237,19 +221,49 @@ int main(int argc, char **argv) {
   MPI_Type_create_struct(nfields, blocklens, disps, types, &istruct);
   MPI_Type_commit(&istruct);
 
+  // ---
+
   if (pid == 1) {
+    int j = 0;
+    pair pairs[CAPACITY];
+    struct node *current = NULL;
+    for (int i = 0; i < h_space; i++) {
+      current = hash_table->table[i];
+      if (current == NULL) continue;
+      while (current != NULL) {
+        pairs[j].count = current->frequency;
+        pairs[j].hash = i;
+        strcpy(pairs[j].word, current->key);
+        j++;
+        current = current->next;
+      }
+    }
+
+    fprintf(outfile, "total words to send: %d\n", j);
+
     MPI_Send(pairs, j, istruct, 0, 3, MPI_COMM_WORLD);
     fprintf(outfile, "total words sent: %d\n", j);
   } else if (pid == 0) {
+    int recv_j = 0;
+    pair recv_pairs[CAPACITY];
     MPI_Recv(recv_pairs, CAPACITY, istruct, 1, 3, MPI_COMM_WORLD, &status);
     MPI_Get_count(&status, istruct, &recv_j);
     fprintf(outfile, "total words to received: %d\n", recv_j);
+
+    for (int i = 0; i<recv_j; i++) {
+      pair recv_pair = recv_pairs[i];
+      int frequency = recv_pair.count;
+
+      struct node *node = add(hash_table, recv_pair.word, 0);
+      node->frequency += recv_pair.count;
+    }
   }
 
   // --------------------------------------------------------------
 
   // write function should be only called for the respective section of the
-  // hash_table writeTable(hash_table, outfile, h_start, h_end);
+  // writeTable(hash_table, outfile, h_start, h_end);
+  writeTable(hash_table, outfile, 0, hash_table->tablesize);
 
   MPI_Finalize();
   return 0;
