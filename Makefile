@@ -2,7 +2,7 @@
 # make        # compile all binary
 # make clean  # remove ALL binaries and objects
 
-CC = gcc
+CC = mpicc
 CFLAGS = -std=c11
 INCLUDES = -I../include
 LFLAGS = -L../lib
