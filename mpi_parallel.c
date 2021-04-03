@@ -81,8 +81,8 @@ int main(int argc, char **argv) {
   // declare a file
   FILE *outfile;
   // open a file whose name is based on the pid
-  char buf[10];
-  snprintf(buf, 10, "./pout/f%d", pid);
+  char buf[16];
+  snprintf(buf, 16, "./pout/f%03d.txt", pid);
   outfile = fopen(buf, "w");
   // outfile = stdout;
 

@@ -7,19 +7,12 @@
 #include "util/hashTable.h"
 #include "util/util.h"
 
-#define NUM_THREADS 4
+#define NUM_THREADS 16
 #define NUM_FILES 30
 
 extern int errno ;
 
-void populateQueue(struct Queue *q, int i) {
-    // format file name of the file to open
-    char file_name[20] = "./files/";
-    char buffer[3];
-    sprintf(buffer,"%d",i);
-    strcat(file_name, buffer);
-    strcat(file_name, ".txt");
-
+void populateQueue(struct Queue *q, char *file_name) {
     // file open operation
     FILE* filePtr;
     if ( (filePtr = fopen(file_name, "r")) == NULL) {
@@ -30,9 +23,13 @@ void populateQueue(struct Queue *q, int i) {
     // read line by line from the file and add to the queue
     size_t len = 0;
     char *line = NULL;
-    while (getline(&line, &len, filePtr) != -1) {
-        enQueue(q, line, len); 
+    int line_count = 0;
+    while (getline(&line, &len, filePtr) != -1)
+    {
+        enQueue(q, line, len);
+        line_count++;
     }
+    // printf("line count %d, %s\n", line_count, file_name);
     fclose(filePtr);
     free(line);
 }
@@ -69,10 +66,10 @@ void populateHashMap(struct Queue *q, struct hashtable *hashMap) {
     }
 }
 
-void reduce(struct hashtable **hash_tables, struct hashtable *final_table, int location) {
+void reduce(struct hashtable **hash_tables, struct hashtable *final_table, int file_count, int location) {
     struct node *node = NULL;
     int i;
-    for (i=0; i<NUM_FILES; i++) {
+    for (i=0; i<file_count; i++) {
         if (hash_tables[i] == NULL || hash_tables[i]->table[location] == NULL) {
             continue;
         }
@@ -94,14 +91,23 @@ void reduce(struct hashtable **hash_tables, struct hashtable *final_table, int l
 int main(int argc, char **argv) {
 
     omp_set_num_threads(NUM_THREADS);
+    omp_lock_t writelock;
+    omp_init_lock(&writelock);
 
     double time = -omp_get_wtime();
+
+    int file_count = 0;
+
+    struct Queue *file_name_queue;
+    file_name_queue = createQueue();
+    file_count = get_file_list(file_name_queue);
+    printf("file_count %d\n", file_count);
 
     struct Queue **queues;
     struct hashtable **hash_tables;
 
-    queues = (struct Queue**) malloc(sizeof(struct Queue*)*NUM_FILES);
-    hash_tables = (struct hashtable**) malloc(sizeof(struct hashtable*)*NUM_FILES);
+    queues = (struct Queue**) malloc(sizeof(struct Queue*)*file_count);
+    hash_tables = (struct hashtable**) malloc(sizeof(struct hashtable*)*file_count);
 
     // consider allocating the memory before execution and during execution
     // there maybe few cache misses depending on the 2 different approaches
@@ -111,14 +117,22 @@ int main(int argc, char **argv) {
     // at the same time, a variable can be used in the queue to 
     // indicate the reader status -- whether reading is finished or not
     #pragma omp parallel for shared(queues, hash_tables)
-    for (i=0; i<NUM_FILES; i++) {
+    for (i=0; i<file_count; i++) {
         queues[i] = createQueue();
-        populateQueue(queues[i], i+1);
+
+        char file_name[30];
+        omp_set_lock(&writelock);
+        strcpy(file_name, file_name_queue->front->line);
+        deQueue(file_name_queue);
+        omp_unset_lock(&writelock);
+
+        populateQueue(queues[i], file_name);
         queues[i]->finished = 1;
 
         hash_tables[i] = createtable(CAPACITY);
         populateHashMap(queues[i], hash_tables[i]);
     }
+    omp_destroy_lock(&writelock);
 
     struct hashtable *final_table = createtable(CAPACITY);
     // add reduction section here
@@ -136,7 +150,7 @@ int main(int argc, char **argv) {
 
         int i;
         for (i=start; i<end; i++) {
-            reduce(hash_tables, final_table, i);
+            reduce(hash_tables, final_table, file_count, i);
         }
     }
 
@@ -161,7 +175,7 @@ int main(int argc, char **argv) {
 
     // clear the heap allocations
     #pragma omp parallel for
-    for (i=0; i<NUM_FILES; i++) {
+    for (i=0; i<file_count; i++) {
         free(queues[i]);
         // printTable(hash_tables[i]);
         free(hash_tables[i]);
