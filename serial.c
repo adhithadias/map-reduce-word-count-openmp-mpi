@@ -22,9 +22,13 @@ void populateQueue(struct Queue *q, char *file_name) {
     // read line by line from the file and add to the queue
     size_t len = 0;
     char *line = NULL;
-    while (getline(&line, &len, filePtr) != -1) {
-        enQueue(q, line, len); 
+    int line_count = 0;
+    while (getline(&line, &len, filePtr) != -1)
+    {
+        enQueue(q, line, len);
+        line_count++;
     }
+    // printf("line count %d, %s\n", line_count, file_name);
     fclose(filePtr);
     free(line);
 }
@@ -81,10 +85,10 @@ void populateHashMap(struct Queue *q, struct hashtable *hashMap) {
     }
 }
 
-void reduce(struct hashtable **hash_tables, struct hashtable *final_table, int location) {
+void reduce(struct hashtable **hash_tables, struct hashtable *final_table, int file_count, int location) {
     struct node *node = NULL;
     int i;
-    for (i=0; i<NUM_FILES; i++) {
+    for (i=0; i<file_count; i++) {
         if (hash_tables[i] == NULL || hash_tables[i]->table[location] == NULL) {
             continue;
         }
@@ -107,17 +111,24 @@ int main(int argc, char **argv) {
 
     // double time = -omp_get_wtime();
 
+    // int file_count = 0;
+
+    // struct Queue *file_name_queue;
+    // file_name_queue = createQueue();
+    // file_count = get_file_list(file_name_queue);
+
     // struct Queue *q = createQueue(); 
     // int i;
-    // for (i=1; i<NUM_FILES; i++) {
-    //     populateQueue(q, i);
+    // for (i=1; i<file_count; i++) {
+    //     populateQueue(q, file_name_queue->front->line);
+    //     deQueue(file_name_queue);
     // }
 
     // hashtable *hashMap = createtable(50000);
     // populateHashMap(q, hashMap);
 
+    // writeFullTable(hashMap, "./output/serial/0.txt");
     // free(q);
-    // // printTable(hashMap);
     // freetable(hashMap);
     
     // time += omp_get_wtime();
@@ -135,6 +146,7 @@ int main(int argc, char **argv) {
     struct Queue *file_name_queue;
     file_name_queue = createQueue();
     file_count = get_file_list(file_name_queue);
+    printf("file_count %d\n", file_count);
 
     struct Queue **queues;
     struct hashtable **hash_tables;
@@ -155,7 +167,7 @@ int main(int argc, char **argv) {
     struct hashtable *final_table = createtable(50000);
     for (int i=0; i<50000; i++) {
         if (i<50000) {
-            reduce(hash_tables, final_table, i);
+            reduce(hash_tables, final_table, file_count, i);
         }
     }
 
