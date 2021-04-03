@@ -11,14 +11,7 @@ extern int errno ;
 
 #define NUM_FILES 30
 
-void populateQueue(struct Queue *q, int i) {
-    // format file name of the file to open
-    char file_name[20] = "./files/";
-    char buffer[3];
-    sprintf(buffer,"%d",i);
-    strcat(file_name, buffer);
-    strcat(file_name, ".txt");
-
+void populateQueue(struct Queue *q, char *file_name) {
     // file open operation
     FILE* filePtr;
     if ( (filePtr = fopen(file_name, "r")) == NULL) {
@@ -35,6 +28,31 @@ void populateQueue(struct Queue *q, int i) {
     fclose(filePtr);
     free(line);
 }
+
+// void populateQueue(struct Queue *q, int i) {
+//     // format file name of the file to open
+//     char file_name[20] = "./files/";
+//     char buffer[3];
+//     sprintf(buffer,"%d",i);
+//     strcat(file_name, buffer);
+//     strcat(file_name, ".txt");
+
+//     // file open operation
+//     FILE* filePtr;
+//     if ( (filePtr = fopen(file_name, "r")) == NULL) {
+//         fprintf(stderr, "could not open file: [%p], err: %d, %s\n", filePtr, errno, strerror(errno));
+//         exit(EXIT_FAILURE);
+//     }
+
+//     // read line by line from the file and add to the queue
+//     size_t len = 0;
+//     char *line = NULL;
+//     while (getline(&line, &len, filePtr) != -1) {
+//         enQueue(q, line, len); 
+//     }
+//     fclose(filePtr);
+//     free(line);
+// }
 
 void populateHashMap(struct Queue *q, struct hashtable *hashMap) {
     struct node *node = NULL;
@@ -112,17 +130,24 @@ int main(int argc, char **argv) {
 
     double time = -omp_get_wtime();
 
+    int file_count = 0;
+
+    struct Queue *file_name_queue;
+    file_name_queue = createQueue();
+    file_count = get_file_list(file_name_queue);
+
     struct Queue **queues;
     struct hashtable **hash_tables;
 
-    queues = (struct Queue**) malloc(sizeof(struct Queue*)*NUM_FILES);
-    hash_tables = (struct hashtable**) malloc(sizeof(struct hashtable*)*NUM_FILES);
+    queues = (struct Queue**) malloc(sizeof(struct Queue*)*file_count);
+    hash_tables = (struct hashtable**) malloc(sizeof(struct hashtable*)*file_count);
  
     int i;
-    for (i=0; i<NUM_FILES; i++) {
+    for (i=0; i<file_count; i++) {
         queues[i] = createQueue();
-        populateQueue(queues[i], i+1);
+        populateQueue(queues[i], file_name_queue->front->line);
         queues[i]->finished = 1;
+        deQueue(file_name_queue);
 
         hash_tables[i] = createtable(50000);
         populateHashMap(queues[i], hash_tables[i]);
@@ -139,7 +164,7 @@ int main(int argc, char **argv) {
     writeFullTable(final_table, "./output/serial/0.txt");
 
     // clear the heap allocations
-    for (i=0; i<NUM_FILES; i++) {
+    for (i=0; i<file_count; i++) {
         free(queues[i]);
         // printTable(hash_tables[i]);
         free(hash_tables[i]);
