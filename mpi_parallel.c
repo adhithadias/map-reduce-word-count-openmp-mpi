@@ -7,12 +7,12 @@
 #include <string.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <omp.h>
 
 #include "util/hashTable.h"
 #include "util/queue.h"
 #include "util/util.h"
 
-#define FILE_NAME_BUF_SIZE 50
 #define TAG_COMM_REQ_DATA 0
 #define TAG_COMM_FILE_NAME 1
 #define TAG_COMM_PAIR_LIST 3
@@ -23,37 +23,6 @@ typedef struct {
   int count;
   char word[WORD_MAX_LENGTH];
 } pair;
-
-int get_file_list(struct Queue *file_name_queue) {
-  DIR *dir;
-  struct dirent *in_file;
-
-  const char dirname[] = "./files/";
-  int file_count = 0;
-
-  // reference:
-  // https://stackoverflow.com/questions/11736060/how-to-read-all-files-in-a-folder-using-c
-  if ((dir = opendir(dirname)) == NULL) {
-    fprintf(stderr, "Error : Failed to open input directory - %s\n",
-            strerror(errno));
-    return 0;
-  }
-  while ((in_file = readdir(dir))) {
-    /* we don't want current and parent directories */
-    if (!strcmp(in_file->d_name, ".") || !strcmp(in_file->d_name, "..") ||
-        !strcmp(in_file->d_name, "./") || !strcmp(in_file->d_name, "../"))
-      continue;
-
-    /* Open directory entry file for common operation */
-    char *file_name = (char *)malloc(sizeof(char) * FILE_NAME_BUF_SIZE);
-    strcpy(file_name, dirname);
-    strcat(file_name, in_file->d_name);
-    enQueue(file_name_queue, file_name, strlen(file_name));
-    file_count++;
-  }
-  closedir(dir);
-  return file_count;
-}
 
 void populateQueue(struct Queue *q, char *file_name) {
   // file open operation
@@ -105,6 +74,8 @@ int main(int argc, char **argv) {
   MPI_Comm_size(MPI_COMM_WORLD, &size);
   MPI_Comm_rank(MPI_COMM_WORLD, &pid);
   MPI_Get_processor_name(p_name, &p_name_len);
+
+  double time = -omp_get_wtime();
 
   /* file outputs for processes */
   // declare a file
@@ -273,6 +244,8 @@ int main(int argc, char **argv) {
   // write function should be only called for the respective section of the
   writeTable(hash_table, outfile, h_start, h_end);
   // writeTable(hash_table, outfile, 0, hash_table->tablesize);
+  time += omp_get_wtime();
+  fprintf(outfile, "total time taken for the execution: %f\n", time);
 
   MPI_Finalize();
   return 0;
