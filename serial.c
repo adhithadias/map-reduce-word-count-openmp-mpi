@@ -142,8 +142,7 @@ int main(int argc, char **argv) {
     queues = (struct Queue**) malloc(sizeof(struct Queue*)*file_count);
     hash_tables = (struct hashtable**) malloc(sizeof(struct hashtable*)*file_count);
  
-    int i;
-    for (i=0; i<file_count; i++) {
+    for (int i=0; i<file_count; i++) {
         queues[i] = createQueue();
         populateQueue(queues[i], file_name_queue->front->line);
         queues[i]->finished = 1;
@@ -164,7 +163,7 @@ int main(int argc, char **argv) {
     writeFullTable(final_table, "./output/serial/0.txt");
 
     // clear the heap allocations
-    for (i=0; i<file_count; i++) {
+    for (int i=0; i<file_count; i++) {
         free(queues[i]);
         // printTable(hash_tables[i]);
         free(hash_tables[i]);

@@ -27,6 +27,12 @@ ${EXECS}:  %: %.o
 serial:
 	mpicc -std=c11 -o serial serial.c -fopenmp
 
+openmp:
+	mpicc -std=c11 -o parallel parallel.c -fopenmp
+
+mpi:
+	mpicc -std=c11 -o mpi_parallel mpi_parallel.c -fopenmp
+
 clean:
 	@echo "removing executables.."
 	$(RM) *.o *~ $(EXECS)
