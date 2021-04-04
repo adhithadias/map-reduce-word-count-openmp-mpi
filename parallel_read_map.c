@@ -133,6 +133,11 @@ int main(int argc, char **argv) {
 
     // consider allocating the memory before execution and during execution
     // there maybe few cache misses depending on the 2 different approaches
+
+    // have to have the queues otherwise seg fault occurs if map runs first
+    for (int i=0; i<NUM_THREADS; i++) { 
+        queues[i] = createQueue();
+    }
  
     int i;
     omp_set_nested(1);   /* make sure nested parallism is on */
@@ -146,7 +151,6 @@ int main(int argc, char **argv) {
                 // get file from queue file name and add reading data to the queue
                 int threadn = omp_get_thread_num();
                 printf("read section thread %d, i %d\n", threadn, i);
-                queues[i] = createQueue();
 
                 while (file_name_queue->front != NULL) {
                     // printf("read section thread %d, i %d\n", threadn, i);
@@ -169,7 +173,6 @@ int main(int argc, char **argv) {
         }
         #pragma omp task // mapping
         {
-            delay(20);
             #pragma omp parallel for num_threads(NUM_THREADS) shared(queues, hash_tables)
             for (int i=0; i<NUM_THREADS; i++)  {
                 int threadn = omp_get_thread_num();
