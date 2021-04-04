@@ -3,7 +3,7 @@
 # make clean  # remove ALL binaries and objects
 
 CC = mpicc
-CFLAGS = -std=c11
+CFLAGS = -std=c11 -std=gnu99 
 INCLUDES = -I../include
 LFLAGS = -L../lib
 LIBS = -lm -fopenmp
@@ -25,13 +25,16 @@ ${EXECS}:  %: %.o
 	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@ $(LIBS)
 
 serial:
-	mpicc -std=c11 -o serial serial.c -fopenmp
+	mpicc -std=c11 -std=gnu99 -fopenmp -o serial serial.c -fopenmp
 
 openmp:
-	mpicc -std=c11 -o parallel parallel.c -fopenmp
+	mpicc -std=c11 -std=gnu99 -fopenmp -o parallel parallel.c
+
+omp-par-read-map:
+	mpicc  -std=c11 -std=gnu99 -fopenmp -o parallel_read_map parallel_read_map.c 
 
 mpi:
-	mpicc -std=c11 -o mpi_parallel mpi_parallel.c -fopenmp
+	mpicc -std=c11 -std=gnu99  -fopenmp -o mpi_parallel mpi_parallel.c
 
 clean:
 	@echo "removing executables.."
