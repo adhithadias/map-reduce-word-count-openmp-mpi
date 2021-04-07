@@ -1,5 +1,9 @@
 // https://www.geeksforgeeks.org/queue-linked-list-implementation/
 // A C program to demonstrate linked list based implementation of queue 
+
+#ifndef QUEUE_H_INCLUDED
+#define QUEUE_H_INCLUDED
+
 #include <stdio.h> 
 #include <stdlib.h> 
 #include <string.h>
@@ -68,4 +72,4 @@ void deQueue(struct Queue* q)
 	free(temp); 
 } 
 
-
+#endif 

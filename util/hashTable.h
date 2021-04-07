@@ -305,10 +305,10 @@ void printTable(struct hashtable *h){
     }
 }
 
-void writePartialTable(struct hashtable *h, const char *filename, int start, int end){
+void writeTable(struct hashtable *h, FILE *fp, int start, int end){
     /* Set all pointers to NULL */
     struct node *current = NULL;
-    FILE *fp = fopen(filename, "w");
+
 
     // different threads may write different parts of the hash table
     // set the start end values for the loop accordingly
@@ -329,6 +329,11 @@ void writePartialTable(struct hashtable *h, const char *filename, int start, int
             spaces++;
         }
     }
+}
+
+void writePartialTable(struct hashtable *h, const char *filename, int start, int end){
+    FILE *fp = fopen(filename, "w");
+    writeTable(h, fp, start, end);
 }
 
 void writeFullTable(struct hashtable *h, const char *filename){
