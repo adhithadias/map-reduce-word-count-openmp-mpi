@@ -2,7 +2,11 @@
 #include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 #include <dirent.h>
+#include "queue.h"
+
+extern int errno ;
 
 #define FILE_NAME_BUF_SIZE 50
 
