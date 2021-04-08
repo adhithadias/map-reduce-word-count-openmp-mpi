@@ -24,8 +24,8 @@ ${EXECS}:  %: %.o
 .c.o:
 	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@ $(LIBS)
 
-serial:
-	mpicc -std=c11 -std=gnu99 -fopenmp -o serial serial.c -fopenmp
+ser:
+	mpicc -std=c11 -std=gnu99 -fopenmp -o serial serial.c
 
 openmp:
 	mpicc -std=c11 -std=gnu99 -fopenmp -o parallel parallel.c
