@@ -4,8 +4,12 @@
 !*/
 !*.*
 
-
 **.o
 
-output/parallel/**
-output/serial/**
+# Ignore output dirs and files
+output/*
+pout/*
+slurm*
+
+# Ignore vscode settings
+.vscode/

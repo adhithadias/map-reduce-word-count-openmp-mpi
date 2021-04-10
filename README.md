@@ -1,11 +1,16 @@
 ## Running the program
+# mpicc will be used for compiling. make sure 'mpicc' is executable from the PATH
 
 ```bash
-gcc serial.c -o serial -fopenmp
-./serial 2>&1 | tee serial.txt
-sort serial.txt > serial_sorted.txt
+# For making the serial executable
+make serial
 
-gcc parallel.c -o parallel -fopenmp
-./parallel 2>&1 | tee parallel.txt
-sort parallel.txt > parallel_sorted.txt
+# For making the OpenMP executable
+make openmp
+
+# For making the MPI executable
+make mpi
+
+# For cleaning all executables
+make clean
 ```
