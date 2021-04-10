@@ -10,6 +10,7 @@
 
 #define NUM_THREADS 16
 #define NUM_FILES 30
+#define HASH_CAPACITY 50000
 
 extern int errno;
 
@@ -236,19 +237,19 @@ int main(int argc, char **argv)
     //     char *filename = (char*) malloc(sizeof(char)*30);
     //     sprintf(filename, "output/parallel/%d.txt", threadn);
 
-    //     writePartialTable(hash_tables[threadn], filename, 0, CAPACITY);
+    //     writePartialTable(hash_tables[threadn], filename, 0, HASH_CAPACITY);
     // }
 
     //----------
 
-    struct hashtable *final_table = createtable(CAPACITY);
+    struct hashtable *final_table = createtable(HASH_CAPACITY);
     // add reduction section here
     #pragma omp parallel for shared(final_table, hash_tables) num_threads(NUM_THREADS)
     for (int i = 0; i < NUM_THREADS; i++)
     {
         int threadn = omp_get_thread_num();
         int tot_threads = omp_get_num_threads();
-        int interval = CAPACITY / tot_threads;
+        int interval = HASH_CAPACITY / tot_threads;
         int start = threadn * interval;
         int end = start + interval;
         printf("reduce section thread %d, start %d\n", threadn, start);
@@ -270,7 +271,7 @@ int main(int argc, char **argv)
     {
         int threadn = omp_get_thread_num();
         int tot_threads = omp_get_num_threads();
-        int interval = CAPACITY / tot_threads;
+        int interval = HASH_CAPACITY / tot_threads;
         int start = threadn * interval;
         int end = start + interval;
         if (end > hash_tables[threadn]->tablesize)

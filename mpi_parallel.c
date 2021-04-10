@@ -17,6 +17,7 @@
 #define TAG_COMM_FILE_NAME 1
 #define TAG_COMM_PAIR_LIST 3
 #define WORD_MAX_LENGTH 50
+#define HASH_CAPACITY 50000
 
 typedef struct
 {
@@ -170,7 +171,7 @@ int main(int argc, char **argv)
     // this indicates the end of reading section of the MPI
 
     struct Queue *queue = createQueue();
-    struct hashtable *hash_table = createtable(CAPACITY);
+    struct hashtable *hash_table = createtable(HASH_CAPACITY);
 
     // this can be run with multiple threads -- can be changed later
     char *file;
@@ -193,12 +194,12 @@ int main(int argc, char **argv)
     * add reduction - hashtable should be communicated amoung the
     * processes to come up with the final reduction
     */
-    int h_space = CAPACITY / size;
+    int h_space = HASH_CAPACITY / size;
     int h_start = h_space * pid;
     int h_end = h_space * (pid + 1);
     fprintf(outfile, "start [%d] end [%d]\n", h_start, h_end);
-    // [0, CAPACITY/size] values from all the processes should be sent to 0th
-    // process [CAPACITY/size, CAPACITY/size*2] values from all the ps should be
+    // [0, HASH_CAPACITY/size] values from all the processes should be sent to 0th
+    // process [HASH_CAPACITY/size, HASH_CAPACITY/size*2] values from all the ps should be
     // sent to 1st process likewise all data should be shared among the processes
 
     // --------- DEFINE THE STRUCT DATA TYPE TO SEND
@@ -223,7 +224,7 @@ int main(int argc, char **argv)
         if (pid != k)
         {
             int j = 0;
-            pair pairs[CAPACITY];
+            pair pairs[HASH_CAPACITY];
             struct node *current = NULL;
             for (int i = h_space * k; i < h_space * (k + 1); i++)
             {
@@ -250,8 +251,8 @@ int main(int argc, char **argv)
             for (int pr = 0; pr < size - 1; pr++)
             {
                 int recv_j = 0;
-                pair recv_pairs[CAPACITY];
-                MPI_Recv(recv_pairs, CAPACITY, istruct, MPI_ANY_SOURCE,
+                pair recv_pairs[HASH_CAPACITY];
+                MPI_Recv(recv_pairs, HASH_CAPACITY, istruct, MPI_ANY_SOURCE,
                          TAG_COMM_PAIR_LIST, MPI_COMM_WORLD, &status);
                 MPI_Get_count(&status, istruct, &recv_j);
                 fprintf(outfile, "total words to received: %d from source: %d\n",
