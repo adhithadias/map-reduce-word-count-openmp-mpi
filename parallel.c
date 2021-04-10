@@ -102,8 +102,8 @@ void reduce(struct hashtable **hash_tables, struct hashtable *final_table, int f
 
 int main(int argc, char **argv)
 {
-
-    omp_set_num_threads(NUM_THREADS);
+    char files_dir[] = "./files";  // TODO: This should be taken from argv
+    omp_set_num_threads(NUM_THREADS);  // TODO: NUM_THREADS should also be a user input
     omp_lock_t writelock;
     omp_init_lock(&writelock);
 
@@ -113,7 +113,7 @@ int main(int argc, char **argv)
 
     struct Queue *file_name_queue;
     file_name_queue = createQueue();
-    file_count = get_file_list(file_name_queue);
+    file_count = get_file_list(file_name_queue, files_dir);
     printf("file_count %d\n", file_count);
 
     struct Queue **queues;

@@ -78,20 +78,22 @@ void populateHashMap(struct Queue *q, struct hashtable *hashMap)
 
 int main(int argc, char **argv)
 {
-    MPI_Init(NULL, NULL);
+    MPI_Init(&argc, &argv);
     int size, pid, p_name_len;
     char p_name[MPI_MAX_PROCESSOR_NAME];
     MPI_Comm_size(MPI_COMM_WORLD, &size);
     MPI_Comm_rank(MPI_COMM_WORLD, &pid);
     MPI_Get_processor_name(p_name, &p_name_len);
 
-    double time = -omp_get_wtime();
+    char files_dir[] = "./files";  // TODO: This should be taken from argv
 
+    double time = -omp_get_wtime();
     /* file outputs for processes */
     // declare a file
     FILE *outfile;
     // open a file whose name is based on the pid
     char buf[16];
+    // TODO: Create output directories automatically and not hard coded
     snprintf(buf, 16, "./pout/f%03d.txt", pid);
     outfile = fopen(buf, "w");
     // outfile = stdout;
@@ -115,7 +117,7 @@ int main(int argc, char **argv)
     if (pid == 0)
     {
         file_name_queue = createQueue();
-        file_count = get_file_list(file_name_queue);
+        file_count = get_file_list(file_name_queue, files_dir);
 
         int num_files_to_send = file_count / size;
 
