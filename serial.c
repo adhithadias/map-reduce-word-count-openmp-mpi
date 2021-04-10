@@ -9,8 +9,6 @@
 
 extern int errno;
 
-#define NUM_FILES 30
-
 void populateQueue(struct Queue *q, char *file_name)
 {
     // file open operation
@@ -63,10 +61,8 @@ void populateQueue(struct Queue *q, char *file_name)
 void populateHashMap(struct Queue *q, struct hashtable *hashMap)
 {
     struct node *node = NULL;
-
     while (q->front)
     {
-
         char str[q->front->len];
         strcpy(str, q->front->line);
         char *token;
@@ -75,9 +71,7 @@ void populateHashMap(struct Queue *q, struct hashtable *hashMap)
         // https://www.geeksforgeeks.org/strtok-strtok_r-functions-c-examples/
         while ((token = strtok_r(rest, " ", &rest)))
         {
-
             char *word = format_string(token);
-
             if (strlen(word) > 0)
             {
                 node = add(hashMap, word, 0);
@@ -85,7 +79,6 @@ void populateHashMap(struct Queue *q, struct hashtable *hashMap)
             }
             free(word);
         }
-
         deQueue(q);
     }
 }
@@ -150,32 +143,43 @@ int main(int argc, char **argv)
     // --------------------------------------------------------------------------------------------------
 
     char files_dir[] = "./files";  // TODO: This should be taken from argv
-    double time = -omp_get_wtime();
+    int file_count;
+    int DEBUG_MODE = 1;
 
-    int file_count = 0;
+    double global_time = -omp_get_wtime();
+    double local_time;
 
     struct Queue *file_name_queue;
     file_name_queue = createQueue();
-    file_count = get_file_list(file_name_queue, files_dir);
-    printf("file_count %d\n", file_count);
 
+    if (DEBUG_MODE) printf("Files Directory: %s\n", files_dir);
+    file_count = get_file_list(file_name_queue, files_dir);
+    printf("Files in Queue: %d\n", file_count);
+    /**********************************************************************************************************/
+
+    /********************** Populating Queues and HashTables by reading files in the FilesQueue ***************/
+    if (DEBUG_MODE) printf("\nPopulating Queues and HashTables by reading files in the FilesQueue\n");
+    local_time = -omp_get_wtime();
     struct Queue **queues;
     struct hashtable **hash_tables;
-
     queues = (struct Queue **)malloc(sizeof(struct Queue *) * file_count);
     hash_tables = (struct hashtable **)malloc(sizeof(struct hashtable *) * file_count);
-
     for (int i = 0; i < file_count; i++)
     {
         queues[i] = createQueue();
         populateQueue(queues[i], file_name_queue->front->line);
         queues[i]->finished = 1;
         deQueue(file_name_queue);
-
         hash_tables[i] = createtable(50000);
         populateHashMap(queues[i], hash_tables[i]);
     }
+    local_time += omp_get_wtime();
+    if (DEBUG_MODE) printf("Done Populating! Time taken: %f\n", local_time);
+    /**********************************************************************************************************/
 
+    /********************** Reducing the populated words in HashTable *****************************************/
+    if (DEBUG_MODE) printf("\nReducing the populated words in HashTable\n");
+    local_time = -omp_get_wtime();
     struct hashtable *final_table = createtable(50000);
     for (int i = 0; i < 50000; i++)
     {
@@ -184,11 +188,22 @@ int main(int argc, char **argv)
             reduce(hash_tables, final_table, file_count, i);
         }
     }
+    local_time += omp_get_wtime();
+    if (DEBUG_MODE) printf("Done Reducing! Time taken: %f\n", local_time);
+    /**********************************************************************************************************/
 
+    /********************** Writing Reduced counts to output file *********************************************/
+    if (DEBUG_MODE) printf("\nWriting Reduced counts to output file\n");
+    local_time = -omp_get_wtime();
     // printTable(final_table);
     writeFullTable(final_table, "./output/serial/0.txt");
+    local_time += omp_get_wtime();
+    if (DEBUG_MODE) printf("Done Writing! Time taken: %f\n", local_time);
+    /**********************************************************************************************************/
 
-    // clear the heap allocations
+    /********************** Clearing the heap allocations for Queues and HashTables ***************************/
+    if (DEBUG_MODE) printf("\nClearing the heap allocations for Queues and HashTables\n");
+    local_time = -omp_get_wtime();
     for (int i = 0; i < file_count; i++)
     {
         free(queues[i]);
@@ -197,9 +212,12 @@ int main(int argc, char **argv)
     }
     free(queues);
     free(hash_tables);
+    local_time += omp_get_wtime();
+    if (DEBUG_MODE) printf("Done Clearing! Time taken: %f\n", local_time);
+    /**********************************************************************************************************/
 
-    time += omp_get_wtime();
-    printf("total time taken for the execution: %f\n", time);
+    global_time += omp_get_wtime();
+    printf("\nTotal time taken for the execution: %f\n", global_time);
 
     return EXIT_SUCCESS;
 }
