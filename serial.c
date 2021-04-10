@@ -14,39 +14,19 @@ int PRINT_MODE = 1;
 
 int main(int argc, char **argv)
 {
-    int opt;
     char files_dir[FILE_NAME_BUF_SIZE] = "./files/"; // TODO: This should be taken from argv
     int file_count = 0;
     int repeat_files = 1;
     double global_time = -omp_get_wtime();
     double local_time;
 
-    /********************** Parsing User inputs from run command with getopt **********************************/
-    // https://stackoverflow.com/questions/17877368/getopt-passing-string-parameter-for-argument
-    while ((opt = getopt(argc, argv, "d:r:g")) != -1)
+    // Parsing User inputs from run command with getopt
+    int arg_parse = process_args(argc, argv, files_dir, &repeat_files, &DEBUG_MODE);
+    if (arg_parse == -1)
     {
-        switch (opt)
-        {
-        case 'd':
-            printf("Files Directory given: \"%s\"\n", optarg);
-            strcpy(files_dir, optarg);
-            break;
-        case 'r':
-            printf("Files to be repeated: %s time(s)\n", optarg);
-            repeat_files = (int)atol(optarg);
-            break;
-        case 'g':
-            printf("Running in debug mode\n");
-            DEBUG_MODE = 1;
-            break;
-        case ':':
-            fprintf(stderr, "Option -%c requires an argument to be given\n", optopt);
-            return 1;
-        default:
-            break;
-        }
+        printf("hello %d\n", arg_parse);
+        return 0;
     }
-    /**********************************************************************************************************/
 
     /********************** Creating and populating FilesQueue ************************************************/
     struct Queue *file_name_queue;

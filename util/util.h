@@ -147,3 +147,31 @@ void reduce(struct hashtable **hash_tables, struct hashtable *final_table, int f
         }
     }
 }
+
+int process_args(int argc, char **argv, char *files_dir, int *repeat_files, int *DEBUG_MODE)
+{
+    // https://stackoverflow.com/questions/17877368/getopt-passing-string-parameter-for-argument
+    int opt;
+    while ((opt = getopt(argc, argv, "d:r:g")) != -1)
+    {
+        switch (opt)
+        {
+        case 'd':
+            printf("Files Directory given: \"%s\"\n", optarg);
+            strcpy(files_dir, optarg);
+            break;
+        case 'r':
+            printf("Files to be repeated: %s time(s)\n", optarg);
+            *repeat_files = (int)atol(optarg);
+            break;
+        case 'g':
+            printf("Running in debug mode\n");
+            *DEBUG_MODE = 1;
+            break;
+        case ':':
+            fprintf(stderr, "Option -%c requires an argument to be given\n", optopt);
+            return -1;
+        }
+    }
+    return 0;
+}
