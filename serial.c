@@ -7,14 +7,16 @@
 #include "util/hashTable.h"
 #include "util/util.h"
 
-extern int errno ;
+extern int errno;
 
 #define NUM_FILES 30
 
-void populateQueue(struct Queue *q, char *file_name) {
+void populateQueue(struct Queue *q, char *file_name)
+{
     // file open operation
-    FILE* filePtr;
-    if ( (filePtr = fopen(file_name, "r")) == NULL) {
+    FILE *filePtr;
+    if ((filePtr = fopen(file_name, "r")) == NULL)
+    {
         fprintf(stderr, "could not open file: [%p], err: %d, %s\n", filePtr, errno, strerror(errno));
         exit(EXIT_FAILURE);
     }
@@ -52,44 +54,50 @@ void populateQueue(struct Queue *q, char *file_name) {
 //     size_t len = 0;
 //     char *line = NULL;
 //     while (getline(&line, &len, filePtr) != -1) {
-//         enQueue(q, line, len); 
+//         enQueue(q, line, len);
 //     }
 //     fclose(filePtr);
 //     free(line);
 // }
 
-void populateHashMap(struct Queue *q, struct hashtable *hashMap) {
+void populateHashMap(struct Queue *q, struct hashtable *hashMap)
+{
     struct node *node = NULL;
 
-    while (q->front) {
-        
+    while (q->front)
+    {
+
         char str[q->front->len];
-        strcpy(str,q->front->line);
+        strcpy(str, q->front->line);
         char *token;
         char *rest = str;
 
         // https://www.geeksforgeeks.org/strtok-strtok_r-functions-c-examples/
-        while ((token = strtok_r(rest, " ", &rest))) {
+        while ((token = strtok_r(rest, " ", &rest)))
+        {
 
             char *word = format_string(token);
-            
-            if(strlen(word) > 0){
+
+            if (strlen(word) > 0)
+            {
                 node = add(hashMap, word, 0);
                 node->frequency++;
             }
-            free(word); 
-            
+            free(word);
         }
 
         deQueue(q);
     }
 }
 
-void reduce(struct hashtable **hash_tables, struct hashtable *final_table, int file_count, int location) {
+void reduce(struct hashtable **hash_tables, struct hashtable *final_table, int file_count, int location)
+{
     struct node *node = NULL;
     int i;
-    for (i=0; i<file_count; i++) {
-        if (hash_tables[i] == NULL || hash_tables[i]->table[location] == NULL) {
+    for (i = 0; i < file_count; i++)
+    {
+        if (hash_tables[i] == NULL || hash_tables[i]->table[location] == NULL)
+        {
             continue;
         }
         // if (final_table->table[location] == NULL) {
@@ -97,17 +105,20 @@ void reduce(struct hashtable **hash_tables, struct hashtable *final_table, int f
         // }
 
         struct node *current = hash_tables[i]->table[location];
-        if(current == NULL) continue;
+        if (current == NULL)
+            continue;
 
-        while(current != NULL) {
+        while (current != NULL)
+        {
             node = add(final_table, current->key, 0);
             node->frequency += current->frequency;
-            current = current->next ;
+            current = current->next;
         }
     }
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
 
     // double time = -omp_get_wtime();
 
@@ -117,7 +128,7 @@ int main(int argc, char **argv) {
     // file_name_queue = createQueue();
     // file_count = get_file_list(file_name_queue);
 
-    // struct Queue *q = createQueue(); 
+    // struct Queue *q = createQueue();
     // int i;
     // for (i=1; i<file_count; i++) {
     //     populateQueue(q, file_name_queue->front->line);
@@ -130,12 +141,11 @@ int main(int argc, char **argv) {
     // writeFullTable(hashMap, "./output/serial/0.txt");
     // free(q);
     // freetable(hashMap);
-    
+
     // time += omp_get_wtime();
     // printf("total time taken for the execution: %f\n", time);
 
     // return EXIT_SUCCESS;
-
 
     // --------------------------------------------------------------------------------------------------
 
@@ -151,10 +161,11 @@ int main(int argc, char **argv) {
     struct Queue **queues;
     struct hashtable **hash_tables;
 
-    queues = (struct Queue**) malloc(sizeof(struct Queue*)*file_count);
-    hash_tables = (struct hashtable**) malloc(sizeof(struct hashtable*)*file_count);
- 
-    for (int i=0; i<file_count; i++) {
+    queues = (struct Queue **)malloc(sizeof(struct Queue *) * file_count);
+    hash_tables = (struct hashtable **)malloc(sizeof(struct hashtable *) * file_count);
+
+    for (int i = 0; i < file_count; i++)
+    {
         queues[i] = createQueue();
         populateQueue(queues[i], file_name_queue->front->line);
         queues[i]->finished = 1;
@@ -165,8 +176,10 @@ int main(int argc, char **argv) {
     }
 
     struct hashtable *final_table = createtable(50000);
-    for (int i=0; i<50000; i++) {
-        if (i<50000) {
+    for (int i = 0; i < 50000; i++)
+    {
+        if (i < 50000)
+        {
             reduce(hash_tables, final_table, file_count, i);
         }
     }
@@ -175,7 +188,8 @@ int main(int argc, char **argv) {
     writeFullTable(final_table, "./output/serial/0.txt");
 
     // clear the heap allocations
-    for (int i=0; i<file_count; i++) {
+    for (int i = 0; i < file_count; i++)
+    {
         free(queues[i]);
         // printTable(hash_tables[i]);
         free(hash_tables[i]);
