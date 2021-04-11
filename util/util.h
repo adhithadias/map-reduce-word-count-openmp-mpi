@@ -152,11 +152,11 @@ void reduce(struct hashtable **hash_tables, struct hashtable *final_table, int f
 }
 
 int process_args(int argc, char **argv, char *files_dir, int *repeat_files, int *DEBUG_MODE, int *HASH_SIZE,
-                 int *QUEUE_TABLE_COUNT)
+                 int *QUEUE_TABLE_COUNT, int *NUM_THREADS)
 {
     // https://stackoverflow.com/questions/17877368/getopt-passing-string-parameter-for-argument
     int opt;
-    while ((opt = getopt(argc, argv, "d:r:h:q:g")) != -1)
+    while ((opt = getopt(argc, argv, "d:r:h:q:t:g")) != -1)
     {
         switch (opt)
         {
@@ -175,6 +175,10 @@ int process_args(int argc, char **argv, char *files_dir, int *repeat_files, int 
         case 'q':
             printf("Queue_Table_count to use: %s\n", optarg);
             *QUEUE_TABLE_COUNT = (int)atol(optarg);
+            break;
+        case 't':
+            printf("Threads to use: %s\n", optarg);
+            *NUM_THREADS = (int)atol(optarg);
             break;
         case 'g':
             printf("Running in debug mode\n");
