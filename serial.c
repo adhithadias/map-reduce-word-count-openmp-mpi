@@ -3,7 +3,6 @@
 #include <string.h>
 #include <errno.h>
 #include <omp.h>
-#include <unistd.h>
 #include "util/queue.h"
 #include "util/hashTable.h"
 #include "util/util.h"

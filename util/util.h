@@ -4,6 +4,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <dirent.h>
+#include <unistd.h>
 #include "queue.h"
 
 extern int errno;
