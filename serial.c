@@ -11,10 +11,11 @@
 extern int errno;
 int DEBUG_MODE = 0;
 int PRINT_MODE = 1;
-int HASH_SIZE = 50000;
 
 int main(int argc, char **argv)
 {
+    int HASH_SIZE = 50000;
+    int QUEUE_TABLE_COUNT = 1;
     char files_dir[FILE_NAME_BUF_SIZE] = "./files/";
     int file_count = 0;
     int repeat_files = 1;
@@ -22,7 +23,8 @@ int main(int argc, char **argv)
     double local_time;
 
     // Parsing User inputs from run command with getopt
-    int arg_parse = process_args(argc, argv, files_dir, &repeat_files, &DEBUG_MODE, &HASH_SIZE);
+    int arg_parse = process_args(argc, argv, files_dir, &repeat_files, &DEBUG_MODE, &HASH_SIZE,
+                                 &QUEUE_TABLE_COUNT);
     if (arg_parse == -1)
     {
         printf("Check inputs and rerun! Exiting!\n");
@@ -54,12 +56,11 @@ int main(int argc, char **argv)
         printf("Done Queuing %d files! Time taken: %f\n", file_count, local_time);
     /**********************************************************************************************************/
 
-    int queues_tables_count = 1; // This was initially equal to file_count
     // TODO: This should be an array as in Prof's lecture (Week 4: Uniform distribution of Elements)
-    int files_per_qt = file_count / queues_tables_count;
+    int files_per_qt = file_count / QUEUE_TABLE_COUNT;
     if (PRINT_MODE)
     {
-        printf("\nNumber of Queues and Tables: %d\n", queues_tables_count);
+        printf("\nNumber of Queues and Tables: %d\n", QUEUE_TABLE_COUNT);
         printf("Number of files per Q&T: %d\n", files_per_qt);
     }
     /********************** Queuing Lines by reading files in the FilesQueue **********************************/
@@ -67,8 +68,8 @@ int main(int argc, char **argv)
         printf("\nQueuing Lines by reading files in the FilesQueue\n");
     local_time = -omp_get_wtime();
     struct Queue **queues;
-    queues = (struct Queue **)malloc(sizeof(struct Queue *) * queues_tables_count);
-    for (int i = 0; i < queues_tables_count; i++)
+    queues = (struct Queue **)malloc(sizeof(struct Queue *) * QUEUE_TABLE_COUNT);
+    for (int i = 0; i < QUEUE_TABLE_COUNT; i++)
     {
         queues[i] = createQueue();
         for (int j = 0; j < files_per_qt; j++)
@@ -91,8 +92,8 @@ int main(int argc, char **argv)
     }
     local_time = -omp_get_wtime();
     struct hashtable **hash_tables;
-    hash_tables = (struct hashtable **)malloc(sizeof(struct hashtable *) * queues_tables_count);
-    for (int i = 0; i < queues_tables_count; i++)
+    hash_tables = (struct hashtable **)malloc(sizeof(struct hashtable *) * QUEUE_TABLE_COUNT);
+    for (int i = 0; i < QUEUE_TABLE_COUNT; i++)
     {
         hash_tables[i] = createtable(HASH_SIZE);
         populateHashMap(queues[i], hash_tables[i]);
@@ -109,13 +110,13 @@ int main(int argc, char **argv)
     // struct hashtable *final_table = createtable(HASH_SIZE);
     for (int i = 0; i < HASH_SIZE; i++)
     {
-        if (queues_tables_count == 1)
+        if (QUEUE_TABLE_COUNT == 1)
         {
             if (DEBUG_MODE)
                 printf("Skipping reduce as the hash_table count is 1");
             break;
         }
-        reduce(&hash_tables[1], hash_tables[0], queues_tables_count - 1, i);
+        reduce(&hash_tables[1], hash_tables[0], QUEUE_TABLE_COUNT - 1, i);
     }
     local_time += omp_get_wtime();
     if (PRINT_MODE)
@@ -137,7 +138,7 @@ int main(int argc, char **argv)
     if (DEBUG_MODE)
         printf("\nClearing the heap allocations for Queues and HashTables\n");
     local_time = -omp_get_wtime();
-    for (int i = 0; i < queues_tables_count; i++)
+    for (int i = 0; i < QUEUE_TABLE_COUNT; i++)
     {
         free(queues[i]);
         // printTable(hash_tables[i]);
