@@ -322,7 +322,7 @@ void writeTable(struct hashtable *h, FILE *fp, int start, int end){
             for (j=0; j<spaces; j++) {
                 fprintf(fp, "\t");
             }
-            fprintf(fp, "i: %d, key: %s, frequency: %d\n", i, current->key, current->frequency);
+            fprintf(fp, "key: %s, frequency: %d\n", current->key, current->frequency);
             current = current->next ;
             spaces++;
         }
