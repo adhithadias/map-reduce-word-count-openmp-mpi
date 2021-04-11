@@ -22,7 +22,7 @@ int main(int argc, char **argv)
     double local_time;
 
     // Parsing User inputs from run command with getopt
-    int arg_parse = process_args(argc, argv, files_dir, &repeat_files, &DEBUG_MODE);
+    int arg_parse = process_args(argc, argv, files_dir, &repeat_files, &DEBUG_MODE, &HASH_SIZE);
     if (arg_parse == -1)
     {
         printf("Check inputs and rerun! Exiting!\n");
@@ -85,7 +85,10 @@ int main(int argc, char **argv)
 
     /********************** Hashing words by reading words in the LinesQueue **********************************/
     if (PRINT_MODE)
+    {
         printf("\nHashing words by reading words in the LinesQueue\n");
+        printf("HASH_SIZE: %d\n", HASH_SIZE);
+    }
     local_time = -omp_get_wtime();
     struct hashtable **hash_tables;
     hash_tables = (struct hashtable **)malloc(sizeof(struct hashtable *) * queues_tables_count);
