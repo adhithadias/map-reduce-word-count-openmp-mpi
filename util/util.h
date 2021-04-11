@@ -100,13 +100,15 @@ void populateQueue(struct Queue *q, char *file_name)
 void populateHashMap(struct Queue *q, struct hashtable *hashMap)
 {
     struct node *node = NULL;
-    while (q->front)
+    // wait until queue is good to start. Useful for parallel accesses.
+    while (q == NULL)
+        continue;
+    while (q->front || !q->finished)
     {
         char str[q->front->len];
         strcpy(str, q->front->line);
         char *token;
         char *rest = str;
-
         // https://www.geeksforgeeks.org/strtok-strtok_r-functions-c-examples/
         while ((token = strtok_r(rest, " ", &rest)))
         {
