@@ -79,10 +79,7 @@ int main(int argc, char **argv)
     struct hashtable *final_table = createtable(50000);
     for (int i = 0; i < 50000; i++)
     {
-        if (i < 50000)
-        {
-            reduce(hash_tables, final_table, file_count, i);
-        }
+        reduce(&hash_tables[1], hash_tables[0], queues_tables_count - 1, i);
     }
     local_time += omp_get_wtime();
     if (PRINT_MODE)
