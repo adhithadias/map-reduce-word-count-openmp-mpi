@@ -13,6 +13,7 @@ int PRINT_MODE = 1;
 
 int main(int argc, char **argv)
 {
+    int NUM_THREADS = 1;
     int HASH_SIZE = 50000;
     int QUEUE_TABLE_COUNT = 1;
     char files_dir[FILE_NAME_BUF_SIZE] = "./files/";
@@ -23,7 +24,7 @@ int main(int argc, char **argv)
 
     // Parsing User inputs from run command with getopt
     int arg_parse = process_args(argc, argv, files_dir, &repeat_files, &DEBUG_MODE, &HASH_SIZE,
-                                 &QUEUE_TABLE_COUNT);
+                                 &QUEUE_TABLE_COUNT, &NUM_THREADS); // NUM_THREADS is dummy here
     if (arg_parse == -1)
     {
         printf("Check inputs and rerun! Exiting!\n");
@@ -115,6 +116,8 @@ int main(int argc, char **argv)
                 printf("Skipping reduce as the hash_table count is 1");
             break;
         }
+        // Here, I am passing the address of hash_tables[1] to be reduced to hash_tables[0]. 
+        // So, total queues count is subtracted by 1
         reduce(&hash_tables[1], hash_tables[0], QUEUE_TABLE_COUNT - 1, i);
     }
     local_time += omp_get_wtime();

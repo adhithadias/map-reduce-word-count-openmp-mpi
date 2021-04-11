@@ -7,27 +7,59 @@
 #include "util/hashTable.h"
 #include "util/util.h"
 
-#define NUM_THREADS 16
-#define NUM_FILES 30
-#define HASH_CAPACITY 50000
-
 extern int errno;
+int DEBUG_MODE = 0;
+int PRINT_MODE = 1;
 
 int main(int argc, char **argv)
 {
-    char files_dir[] = "./files";  // TODO: This should be taken from argv
-    omp_set_num_threads(NUM_THREADS);  // TODO: NUM_THREADS should also be a user input
+    int NUM_THREADS = 16;
+    int HASH_SIZE = 50000;
+    int QUEUE_TABLE_COUNT = 1;
+    char files_dir[FILE_NAME_BUF_SIZE] = "./files/";
+    int file_count = 0;
+    int repeat_files = 1;
+    double local_time;
+
+    // Parsing User inputs from run command with getopt
+    int arg_parse = process_args(argc, argv, files_dir, &repeat_files, &DEBUG_MODE, &HASH_SIZE,
+                                 &QUEUE_TABLE_COUNT, &NUM_THREADS);
+    if (arg_parse == -1)
+    {
+        printf("Check inputs and rerun! Exiting!\n");
+        return 1;
+    }
+
+    omp_set_num_threads(NUM_THREADS);
     omp_lock_t writelock;
     omp_init_lock(&writelock);
 
-    double time = -omp_get_wtime();
+    double global_time = -omp_get_wtime();
 
-    int file_count = 0;
-
+    /********************** Creating and populating FilesQueue ************************************************/
     struct Queue *file_name_queue;
     file_name_queue = createQueue();
-    file_count = get_file_list(file_name_queue, files_dir);
-    printf("file_count %d\n", file_count);
+
+    if (DEBUG_MODE)
+    {
+        printf("\nQueuing files in Directory: %s\n", files_dir);
+        printf("Queuing files %d time(s)\n", repeat_files);
+    }
+    local_time = -omp_get_wtime();
+    for (int i = 0; i < repeat_files; i++)
+    {
+        int files = get_file_list(file_name_queue, files_dir);
+        if (files == -1)
+        {
+            printf("Check input directory and rerun! Exiting!\n");
+            return 1;
+        }
+        file_count += files;
+    }
+    local_time += omp_get_wtime();
+    if (PRINT_MODE)
+        printf("Done Queuing %d files! Time taken: %f\n", file_count, local_time);
+    /**********************************************************************************************************/
 
     struct Queue **queues;
     struct hashtable **hash_tables;
@@ -56,18 +88,18 @@ int main(int argc, char **argv)
         populateQueue(queues[i], file_name);
         queues[i]->finished = 1;
 
-        hash_tables[i] = createtable(HASH_CAPACITY);
+        hash_tables[i] = createtable(HASH_SIZE);
         populateHashMap(queues[i], hash_tables[i]);
     }
     omp_destroy_lock(&writelock);
 
-    struct hashtable *final_table = createtable(HASH_CAPACITY);
+    struct hashtable *final_table = createtable(HASH_SIZE);
     // add reduction section here
     #pragma omp parallel shared(final_table, hash_tables)
     {
         int threadn = omp_get_thread_num();
         int tot_threads = omp_get_num_threads();
-        int interval = HASH_CAPACITY / tot_threads;
+        int interval = HASH_SIZE / tot_threads;
         int start = threadn * interval;
         int end = start + interval;
 
@@ -90,7 +122,7 @@ int main(int argc, char **argv)
     {
         int threadn = omp_get_thread_num();
         int tot_threads = omp_get_num_threads();
-        int interval = HASH_CAPACITY / tot_threads;
+        int interval = HASH_SIZE / tot_threads;
         int start = threadn * interval;
         int end = start + interval;
         if (end > final_table->tablesize)
@@ -114,8 +146,8 @@ int main(int argc, char **argv)
     free(queues);
     free(hash_tables);
 
-    time += omp_get_wtime();
-    printf("total time taken for the execution: %f\n", time);
+    global_time += omp_get_wtime();
+    printf("total time taken for the execution: %f\n", global_time);
 
     return EXIT_SUCCESS;
 }
