@@ -1,0 +1,49 @@
+sbatch submit_parallel.sub
+that is ./parallel -r 20 -t 20
+
+Files to be repeated: 20 time(s)
+Threads to use: 20
+Done Queuing 340 files! Time taken: 0.006705     -> OK
+
+Number of Queues and Tables: 20
+Number of files per Q&T: 17
+
+Queuing Lines by reading files in the FilesQueue
+Done Populating lines! Time taken: 1.163170      -> Can speedup. Its same as serial.
+
+Hashing words by reading words in the LinesQueue
+HASH_SIZE: 50000
+Done Hashing words! Time taken: 1.429005         -> Can speedup more. Speedup is only 4.92X
+
+Reducing the populated words in HashTable
+Done Reducing! Time taken: 0.002361              -> This is already very fast. With OMP, it has degraded.
+
+Writing Reduced counts to output file
+Done Writing! Time taken: 0.161686               -> Speedup is 2.45X
+
+Total time taken for the execution: 2.763741     -> Just seeing a speedup of 3.079X -> Very bad...
+------------------------------------------------
+With ./parallel -r 20 -t 1
+
+Files to be repeated: 20 time(s)
+Threads to use: 1
+Done Queuing 340 files! Time taken: 0.002792
+
+Number of Queues and Tables: 1
+Number of files per Q&T: 340
+
+Queuing Lines by reading files in the FilesQueue
+Done Populating lines! Time taken: 1.073533
+
+Hashing words by reading words in the LinesQueue
+HASH_SIZE: 50000
+Done Hashing words! Time taken: 7.036553
+
+Reducing the populated words in HashTable
+Done Reducing! Time taken: 0.000022
+
+Writing Reduced counts to output file
+Done Writing! Time taken: 0.397528
+
+Total time taken for the execution: 8.511092
+------------------------------------------------
