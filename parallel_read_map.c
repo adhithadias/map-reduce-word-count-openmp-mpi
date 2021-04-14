@@ -13,6 +13,8 @@
 #define HASH_CAPACITY 50000
 
 extern int errno;
+int DEBUG_MODE = 0;
+int PRINT_MODE = 1;
 
 void delay(int milis)
 {
@@ -24,31 +26,7 @@ void delay(int milis)
         ;
 }
 
-void populateQueue(struct Queue *q, char *file_name)
-{
-    // file open operation
-    FILE *filePtr;
-    if ((filePtr = fopen(file_name, "r")) == NULL)
-    {
-        fprintf(stderr, "could not open file: [%p], err: %d, %s\n", filePtr, errno, strerror(errno));
-        exit(EXIT_FAILURE);
-    }
-
-    // read line by line from the file and add to the queue
-    size_t len = 0;
-    char *line = NULL;
-    int line_count = 0;
-    while (getline(&line, &len, filePtr) != -1)
-    {
-        enQueue(q, line, len);
-        line_count++;
-    }
-    // printf("line count %d, %s\n", line_count, file_name);
-    fclose(filePtr);
-    free(line);
-}
-
-void populateHashMap(struct Queue *q, struct hashtable *hashMap)
+void populateHashMap2(struct Queue *q, struct hashtable *hashMap)
 {
     struct node *node = NULL;
 
@@ -97,36 +75,9 @@ void populateHashMap(struct Queue *q, struct hashtable *hashMap)
     }
 }
 
-void reduce(struct hashtable **hash_tables, struct hashtable *final_table, int thread_count, int location)
-{
-    struct node *node = NULL;
-    int i;
-    for (i = 0; i < thread_count; i++)
-    {
-        if (hash_tables[i] == NULL || hash_tables[i]->table[location] == NULL)
-        {
-            continue;
-        }
-        // if (final_table->table[location] == NULL) {
-        //     final_table->table[location] = hash_tables[i]->table[location];
-        // }
-
-        struct node *current = hash_tables[i]->table[location];
-        if (current == NULL)
-            continue;
-
-        while (current != NULL)
-        {
-            node = add(final_table, current->key, 0);
-            node->frequency += current->frequency;
-            current = current->next;
-        }
-    }
-}
-
 int main(int argc, char **argv)
 {
-    char files_dir[] = "./files";  // TODO: This should be taken from argv
+    char files_dir[] = "./files"; // TODO: This should be taken from argv
 
     // omp_set_num_threads(NUM_THREADS*2);
     omp_lock_t readlock;
@@ -157,12 +108,12 @@ int main(int argc, char **argv)
 
     int i;
     omp_set_nested(1); /* make sure nested parallism is on */
-    #pragma omp parallel default(none) shared(queues, file_name_queue, hash_tables, readlock) num_threads(2)
-    #pragma omp single
+#pragma omp parallel default(none) shared(queues, file_name_queue, hash_tables, readlock) num_threads(2)
+#pragma omp single
     {
-        #pragma omp task // reading
+#pragma omp task // reading
         {
-            #pragma omp parallel for num_threads(NUM_THREADS) shared(queues, file_name_queue, readlock)
+#pragma omp parallel for num_threads(NUM_THREADS) shared(queues, file_name_queue, readlock)
             for (int i = 0; i < NUM_THREADS; i++)
             { // turn this to threads
                 // get file from queue file name and add reading data to the queue
@@ -188,15 +139,15 @@ int main(int argc, char **argv)
             // int threadn = omp_get_thread_num();
             // printf("2 read section thread %d\n", threadn);
         }
-        #pragma omp task // mapping
+#pragma omp task // mapping
         {
-            #pragma omp parallel for num_threads(NUM_THREADS) shared(queues, hash_tables)
+#pragma omp parallel for num_threads(NUM_THREADS) shared(queues, hash_tables)
             for (int i = 0; i < NUM_THREADS; i++)
             {
                 int threadn = omp_get_thread_num();
                 hash_tables[i] = createtable(50000);
                 printf("map section thread %d, i %d\n", threadn, i);
-                populateHashMap(queues[i], hash_tables[i]);
+                populateHashMap2(queues[i], hash_tables[i]);
             }
             // int threadn = omp_get_thread_num();
             // printf("2 read section thread %d\n", threadn);
@@ -220,7 +171,7 @@ int main(int argc, char **argv)
     //             int threadn = omp_get_thread_num();
     //             hash_tables[threadn] = createtable(50000);
     //             printf("map section thread %d, i %d\n", threadn, i);
-    //             populateHashMap(queues[i], hash_tables[i]);
+    //             populateHashMap2(queues[i], hash_tables[i]);
 
     //         }
     //         // int threadn = omp_get_thread_num();
@@ -244,8 +195,8 @@ int main(int argc, char **argv)
     //----------
 
     struct hashtable *final_table = createtable(HASH_CAPACITY);
-    // add reduction section here
-    #pragma omp parallel for shared(final_table, hash_tables) num_threads(NUM_THREADS)
+// add reduction section here
+#pragma omp parallel for shared(final_table, hash_tables) num_threads(NUM_THREADS)
     for (int i = 0; i < NUM_THREADS; i++)
     {
         int threadn = omp_get_thread_num();
@@ -267,7 +218,7 @@ int main(int argc, char **argv)
         }
     }
 
-    #pragma omp parallel for num_threads(NUM_THREADS) shared(final_table)
+#pragma omp parallel for num_threads(NUM_THREADS) shared(final_table)
     for (int i = 0; i < NUM_THREADS; i++)
     {
         int threadn = omp_get_thread_num();
@@ -287,8 +238,8 @@ int main(int argc, char **argv)
         writePartialTable(final_table, filename, start, end);
     }
 
-    // clear the heap allocations
-    #pragma omp parallel for
+// clear the heap allocations
+#pragma omp parallel for
     for (i = 0; i < NUM_THREADS; i++)
     {
         free(queues[i]);

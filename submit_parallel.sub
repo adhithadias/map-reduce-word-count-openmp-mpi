@@ -5,4 +5,4 @@
 #SBATCH --time=00:02:00
 
 export OMP_NUM_THREADS=20
-./parallel 
+./parallel -r 20 -t 20

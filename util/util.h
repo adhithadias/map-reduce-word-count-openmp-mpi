@@ -4,6 +4,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <dirent.h>
+#include <unistd.h>
 #include "queue.h"
 
 extern int errno;
@@ -100,13 +101,15 @@ void populateQueue(struct Queue *q, char *file_name)
 void populateHashMap(struct Queue *q, struct hashtable *hashMap)
 {
     struct node *node = NULL;
-    while (q->front)
+    // wait until queue is good to start. Useful for parallel accesses.
+    while (q == NULL)
+        continue;
+    while (q->front || !q->finished)
     {
         char str[q->front->len];
         strcpy(str, q->front->line);
         char *token;
         char *rest = str;
-
         // https://www.geeksforgeeks.org/strtok-strtok_r-functions-c-examples/
         while ((token = strtok_r(rest, " ", &rest)))
         {
@@ -148,11 +151,12 @@ void reduce(struct hashtable **hash_tables, struct hashtable *final_table, int f
     }
 }
 
-int process_args(int argc, char **argv, char *files_dir, int *repeat_files, int *DEBUG_MODE)
+int process_args(int argc, char **argv, char *files_dir, int *repeat_files, int *DEBUG_MODE, int *HASH_SIZE,
+                 int *QUEUE_TABLE_COUNT, int *NUM_THREADS)
 {
     // https://stackoverflow.com/questions/17877368/getopt-passing-string-parameter-for-argument
     int opt;
-    while ((opt = getopt(argc, argv, "d:r:g")) != -1)
+    while ((opt = getopt(argc, argv, "d:r:h:q:t:g")) != -1)
     {
         switch (opt)
         {
@@ -163,6 +167,18 @@ int process_args(int argc, char **argv, char *files_dir, int *repeat_files, int 
         case 'r':
             printf("Files to be repeated: %s time(s)\n", optarg);
             *repeat_files = (int)atol(optarg);
+            break;
+        case 'h':
+            printf("Hash Size to use: %s\n", optarg);
+            *HASH_SIZE = (int)atol(optarg);
+            break;
+        case 'q':
+            printf("Queue_Table_count to use: %s\n", optarg);
+            *QUEUE_TABLE_COUNT = (int)atol(optarg);
+            break;
+        case 't':
+            printf("Threads to use: %s\n", optarg);
+            *NUM_THREADS = (int)atol(optarg);
             break;
         case 'g':
             printf("Running in debug mode\n");

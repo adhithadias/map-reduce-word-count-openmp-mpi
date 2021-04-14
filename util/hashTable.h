@@ -8,14 +8,17 @@
 #include <string.h>
 #include <stdbool.h>
 
+extern int DEBUG_MODE;
 
-struct node {
+struct node
+{
     char *key;
     int frequency;
     struct node *next;
 };
 
-struct hashtable {
+struct hashtable
+{
     struct node **table;
     int currentsize;
     int tablesize;
@@ -36,7 +39,6 @@ int hashcode(char *);
  */
 void freenode(struct node *);
 
-
 /**
  * Adds a new node to the hash table.
  * @param hashtable *, pointer to struct containing the hash table.
@@ -45,7 +47,7 @@ void freenode(struct node *);
  * @return the newly created node. If the key value is already
  * in the table, return the node containing that key.
  */
-struct node * add(hashtable *, char *, int);
+struct node *add(hashtable *, char *, int);
 
 /**
  * Checks is a key value is stored in the table.
@@ -63,7 +65,7 @@ bool contains(hashtable *, char *);
  * @return the node containing the key value, NULL if the node is not
  * found.
  */
-struct node * getnode(hashtable *, char *);
+struct node *getnode(hashtable *, char *);
 
 /**
  * Deletes a node from the hash table
@@ -86,7 +88,7 @@ void mostfrequent(hashtable *, int);
  * @param int, the size of the array to be created.
  * @param hashtable *, pointer to the new hashtable.
  */
-hashtable * createtable(int);
+hashtable *createtable(int);
 
 /**
  * Allocates memory and sets the values for a new node.
@@ -94,7 +96,7 @@ hashtable * createtable(int);
  * @param char *, the key value to be stored in the node.
  * @return node *, pointer to the new node.
  */
-struct node * nalloc(char *, int);
+struct node *nalloc(char *, int);
 
 /**
  * Deallocates the memory associated with the hash table, including
@@ -116,19 +118,19 @@ int hashcode(char *);
  */
 void freenode(struct node *);
 
-
 void printTable(struct hashtable *h);
 
-
 /* Adds a new node to the hash table*/
-struct node * add(hashtable *h, char *key, int freq) {
+struct node *add(hashtable *h, char *key, int freq)
+{
     struct node *newnode;
     int index = hashcode(key) % h->tablesize;
     struct node *current = h->table[index];
 
     /* Search for duplicate value */
-    while(current != NULL) {
-        if(strcmp(key, current->key) == 0)
+    while (current != NULL)
+    {
+        if (strcmp(key, current->key) == 0)
             return current;
         current = current->next;
     }
@@ -141,12 +143,14 @@ struct node * add(hashtable *h, char *key, int freq) {
 }
 
 /* Searches for a key, returns true if it finds it */
-bool contains(hashtable *h, char *key) {
+bool contains(hashtable *h, char *key)
+{
     int index = hashcode(key) % h->tablesize;
     struct node *current = h->table[index];
 
-    while(current != NULL) {
-        if(strcmp(key, current->key) == 0)
+    while (current != NULL)
+    {
+        if (strcmp(key, current->key) == 0)
             return true;
         current = current->next;
     }
@@ -154,12 +158,14 @@ bool contains(hashtable *h, char *key) {
 }
 
 /* Returns a pointer to a node that matches the given key value */
-struct node * getnode(hashtable *h, char *key) {
+struct node *getnode(hashtable *h, char *key)
+{
     int index = hashcode(key) % h->tablesize;
     struct node *current = h->table[index];
 
-    while(current != NULL) {
-        if(strcmp(key, current->key) == 0)
+    while (current != NULL)
+    {
+        if (strcmp(key, current->key) == 0)
             return current;
         current = current->next;
     }
@@ -167,26 +173,28 @@ struct node * getnode(hashtable *h, char *key) {
 }
 
 /* Deletes a node whose key matches the string parameter */
-void deletenode(hashtable *h, char *key) {
+void deletenode(hashtable *h, char *key)
+{
     int index = hashcode(key) % h->tablesize;
     struct node *current = h->table[index];
     struct node *previous = NULL;
 
-    if(current == NULL)
+    if (current == NULL)
         return;
     /* Scan the linked list until  match is found or the end is reached */
-    while(current != NULL && strcmp(key, current->key) != 0) {
+    while (current != NULL && strcmp(key, current->key) != 0)
+    {
         previous = current;
         current = current->next;
     }
     /* Item not found */
-    if(current == NULL)
+    if (current == NULL)
         return;
     /* Item is in the first position */
-    else if(current == h->table[index])
+    else if (current == h->table[index])
         h->table[index] = current->next;
     /* Item is in the last position */
-    else if(current->next == NULL)
+    else if (current->next == NULL)
         previous->next = NULL;
     /* Item is in the middle of the list */
     else
@@ -196,15 +204,18 @@ void deletenode(hashtable *h, char *key) {
 }
 
 /* Prints values that have a value higher than the integer parameter */
-void mostfrequent(hashtable *h, int freq) {
+void mostfrequent(hashtable *h, int freq)
+{
     struct node *current = NULL;
     int i;
     printf("\n  Word       Frequency\n");
     printf("  --------------------\n");
-    for(i = 0; i < h->tablesize; i++) {
+    for (i = 0; i < h->tablesize; i++)
+    {
         current = h->table[i];
-        while(current != NULL) {
-            if(current->frequency > freq)
+        while (current != NULL)
+        {
+            if (current->frequency > freq)
                 printf("  %-14s %d\n", current->key, current->frequency);
             current = current->next;
         }
@@ -212,38 +223,43 @@ void mostfrequent(hashtable *h, int freq) {
 }
 
 /* Returns a positive integer hash value generated from a string value */
-int hashcode(char *key) {
+int hashcode(char *key)
+{
     int i, hash = 7;
     int length = strlen(key);
 
-    for(i = 0; i < length; i++)
+    for (i = 0; i < length; i++)
         hash = (hash * 31) + *(key + i);
-    return hash & 0x7FFFFFFF;  /* Make value positive */
+    return hash & 0x7FFFFFFF; /* Make value positive */
 }
 
 /* Returns a pointer to a newly allocated hash table */
-struct hashtable * createtable(int size) {
+struct hashtable *createtable(int size)
+{
     int i;
-    if(size < 1)
+    if (size < 1)
         return NULL;
-    hashtable *table = (hashtable *) malloc(sizeof(hashtable));
-    table->table = (struct node **) malloc(sizeof(struct node *) * size);
+    hashtable *table = (hashtable *)malloc(sizeof(hashtable));
+    table->table = (struct node **)malloc(sizeof(struct node *) * size);
 
-    if(table != NULL) {
+    if (table != NULL)
+    {
         table->currentsize = 0;
         table->tablesize = size;
     }
     /* Set all pointers to NULL */
-    for(i = 0; i < size; i++)
+    for (i = 0; i < size; i++)
         table->table[i] = NULL;
     return table;
 }
 
 /* Allocates memory for a new node. Initializes the new node's members */
-struct node * nalloc(char *key, int freq) {
-    struct node *p = (struct node *) malloc(sizeof(struct node));
+struct node *nalloc(char *key, int freq)
+{
+    struct node *p = (struct node *)malloc(sizeof(struct node));
 
-    if(p != NULL) {
+    if (p != NULL)
+    {
         p->key = strdup(key);
         p->frequency = freq;
         p->next = NULL;
@@ -253,23 +269,27 @@ struct node * nalloc(char *key, int freq) {
 
 /* Deallocates memory of the string stored in the node and the
    node itself */
-void freenode(struct node *node) {
+void freenode(struct node *node)
+{
     free(node->key);
     free(node);
 }
 
 /* Deallocates all of the memory associated with the hash table */
-void freetable(hashtable *h) {
+void freetable(hashtable *h)
+{
     struct node *current = NULL;
     int i;
 
-    for(i = 0; i < h->tablesize; i++) {
+    for (i = 0; i < h->tablesize; i++)
+    {
         current = h->table[i];
-        if(current == NULL)
+        if (current == NULL)
             continue;
         /* Deallocate memory of every node in the table */
-        while(current->next != NULL) {
-            h->table[i] = h->table[i]->next ;
+        while (current->next != NULL)
+        {
+            h->table[i] = h->table[i]->next;
             freenode(current);
             current = h->table[i];
         }
@@ -280,62 +300,74 @@ void freetable(hashtable *h) {
     free(h);
 }
 
-void printTable(struct hashtable *h){
+void printTable(struct hashtable *h)
+{
     /* Set all pointers to NULL */
     struct node *current = NULL;
     int i;
 
-    for(i = 0; i < h->tablesize; i++) {
+    for (i = 0; i < h->tablesize; i++)
+    {
         current = h->table[i];
-        if(current == NULL)
+        if (current == NULL)
             continue;
         /* Deallocate memory of every node in the table */
         int spaces = 0;
-        while(current != NULL) {
+        while (current != NULL)
+        {
             int j;
-            for (j=0; j<spaces; j++) {
+            for (j = 0; j < spaces; j++)
+            {
                 printf("\t");
             }
             printf("i: %d, key: %s, frequency: %d\n", i, current->key, current->frequency);
-            current = current->next ;
+            current = current->next;
             spaces++;
         }
     }
 }
 
-void writeTable(struct hashtable *h, FILE *fp, int start, int end){
+void writeTable(struct hashtable *h, FILE *fp, int start, int end)
+{
     /* Set all pointers to NULL */
     struct node *current = NULL;
-
 
     // different threads may write different parts of the hash table
     // set the start end values for the loop accordingly
     int i;
-    for(i = start; i < end; i++) {
+    for (i = start; i < end; i++)
+    {
         current = h->table[i];
-        if(current == NULL)
+        if (current == NULL)
             continue;
         /* Deallocate memory of every node in the table */
         int spaces = 0;
-        while(current != NULL) {
+        while (current != NULL)
+        {
             int j;
-            for (j=0; j<spaces; j++) {
-                fprintf(fp, "\t");
+            for (j = 0; j < spaces; j++)
+            {
+                if (DEBUG_MODE)
+                    fprintf(fp, "\t");
             }
-            fprintf(fp, "i: %d, key: %s, frequency: %d\n", i, current->key, current->frequency);
-            current = current->next ;
+            fprintf(fp, "key: %s, frequency: %d\n", current->key, current->frequency);
+            if (DEBUG_MODE)
+                fprintf(fp, "i: %d, key: %s, frequency: %d\n", i, current->key, current->frequency);
+            current = current->next;
             spaces++;
         }
     }
 }
 
-void writePartialTable(struct hashtable *h, const char *filename, int start, int end){
+void writePartialTable(struct hashtable *h, const char *filename, int start, int end)
+{
     FILE *fp = fopen(filename, "w");
     writeTable(h, fp, start, end);
 }
 
-void writeFullTable(struct hashtable *h, const char *filename){
-  writePartialTable(h, filename, 0, h->tablesize);
+void writeFullTable(struct hashtable *h, const char *filename)
+{
+    writePartialTable(h, filename, 0, h->tablesize);
 }
 
 #endif // HASHTABLE_H_INCLUDED

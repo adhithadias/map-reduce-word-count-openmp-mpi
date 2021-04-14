@@ -7,8 +7,9 @@
 **.o
 
 # Ignore output dirs and files
-output/*
-pout/*
+output/parallel/*.txt
+output/serial/*.txt
+pout/*.txt
 slurm*
 
 # Ignore vscode settings

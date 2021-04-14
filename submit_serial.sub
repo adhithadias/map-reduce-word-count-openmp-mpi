@@ -4,4 +4,4 @@
 #SBATCH --ntasks=1
 #SBATCH --time=00:02:00
 
-./serial 
+./serial -r 20

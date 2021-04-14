@@ -19,62 +19,15 @@
 #define WORD_MAX_LENGTH 50
 #define HASH_CAPACITY 50000
 
+int DEBUG_MODE = 0;
+int PRINT_MODE = 1;
+
 typedef struct
 {
     int hash;
     int count;
     char word[WORD_MAX_LENGTH];
 } pair;
-
-void populateQueue(struct Queue *q, char *file_name)
-{
-    // file open operation
-    FILE *filePtr;
-    if ((filePtr = fopen(file_name, "r")) == NULL)
-    {
-        fprintf(stderr, "could not open file: [%p], err: %d, %s\n", filePtr, errno,
-                strerror(errno));
-        exit(EXIT_FAILURE);
-    }
-
-    // read line by line from the file and add to the queue
-    size_t len = 0;
-    char *line = NULL;
-    while (getline(&line, &len, filePtr) != -1)
-    {
-        enQueue(q, line, len);
-    }
-    fclose(filePtr);
-    free(line);
-}
-
-void populateHashMap(struct Queue *q, struct hashtable *hashMap)
-{
-    struct node *node = NULL;
-
-    while (q->front)
-    {
-        char str[q->front->len];
-        strcpy(str, q->front->line);
-        char *token;
-        char *rest = str;
-
-        // https://www.geeksforgeeks.org/strtok-strtok_r-functions-c-examples/
-        while ((token = strtok_r(rest, " ", &rest)))
-        {
-            char *word = format_string(token);
-
-            if (strlen(word) > 0)
-            {
-                node = add(hashMap, word, 0);
-                node->frequency++;
-            }
-            free(word);
-        }
-
-        deQueue(q);
-    }
-}
 
 int main(int argc, char **argv)
 {
@@ -85,7 +38,7 @@ int main(int argc, char **argv)
     MPI_Comm_rank(MPI_COMM_WORLD, &pid);
     MPI_Get_processor_name(p_name, &p_name_len);
 
-    char files_dir[] = "./files";  // TODO: This should be taken from argv
+    char files_dir[] = "./files"; // TODO: This should be taken from argv
 
     double time = -omp_get_wtime();
     /* file outputs for processes */
