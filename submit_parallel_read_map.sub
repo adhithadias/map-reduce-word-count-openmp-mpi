@@ -1,8 +1,8 @@
 #!/bin/bash
-# FILENAME:  submit_parallel.sub
+# FILENAME:  submit_parallel_read_map.sub
 #SBATCH --nodes=1
 #SBATCH --ntasks=20
 #SBATCH --time=00:02:00
 
 export OMP_NUM_THREADS=20
-./parallel -r 20 -t 20
+./parallel_read_map 

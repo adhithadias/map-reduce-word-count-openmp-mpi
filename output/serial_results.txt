@@ -1,0 +1,120 @@
+srun ./serial
+Done Queuing 17 files! Time taken: 0.000421
+
+Number of Queues and Tables: 1
+Number of files per Q&T: 17
+
+Queuing Lines by reading files in the FilesQueue
+Done Populating lines! Time taken: 0.065992
+
+Hashing words by reading words in the LinesQueue
+HASH_SIZE: 50000
+Done Hashing words! Time taken: 0.338641
+
+Reducing the populated words in HashTable
+Done Reducing! Time taken: 0.000000
+
+Writing Reduced counts to output file
+Done Writing! Time taken: 0.027962
+
+Total time taken for the execution: 0.433108
+------------------------------------------------
+srun ./serial -r 20
+Files to be repeated: 20 time(s)
+Done Queuing 340 files! Time taken: 0.002756
+
+Number of Queues and Tables: 1
+Number of files per Q&T: 340
+
+Queuing Lines by reading files in the FilesQueue
+Done Populating lines! Time taken: 1.071434
+
+Hashing words by reading words in the LinesQueue
+HASH_SIZE: 50000
+Done Hashing words! Time taken: 7.238787
+
+Reducing the populated words in HashTable
+Done Reducing! Time taken: 0.000000
+
+Writing Reduced counts to output file
+Done Writing! Time taken: 0.395570
+
+Total time taken for the execution: 8.708658
+------------------------------------------------
+srun ./serial -r 50
+Files to be repeated: 50 time(s)
+Done Queuing 850 files! Time taken: 0.004183
+
+Number of Queues and Tables: 1
+Number of files per Q&T: 850
+
+Queuing Lines by reading files in the FilesQueue
+Done Populating lines! Time taken: 2.619196
+
+Hashing words by reading words in the LinesQueue
+HASH_SIZE: 50000
+Done Hashing words! Time taken: 18.183736
+
+Reducing the populated words in HashTable
+Done Reducing! Time taken: 0.000000
+
+Writing Reduced counts to output file
+Done Writing! Time taken: 1.087761
+
+Total time taken for the execution: 21.894989
+------------------------------------------------
+srun ./serial -r 100
+slurmstepd: error: Detected 1 oom-kill event(s) in step 71345.0 cgroup. 
+Some of your processes may have been killed by the cgroup out-of-memory handler.
+srun: error: scholar-a007: task 0: Out Of Memory
+Is there a memoruy leak in the code?
+------------------------------------------------
+srun ./serial -r 50 -h 10000
+Files to be repeated: 50 time(s)
+Hash Size to use: 10000  -> Reducing the hash_size is decreasing the performance. Hashing is taking more time.
+Done Queuing 850 files! Time taken: 0.004983
+
+Number of Queues and Tables: 1
+Number of files per Q&T: 850
+
+Queuing Lines by reading files in the FilesQueue
+Done Populating lines! Time taken: 2.622734
+
+Hashing words by reading words in the LinesQueue
+HASH_SIZE: 10000
+Done Hashing words! Time taken: 27.888621
+
+Reducing the populated words in HashTable
+Done Reducing! Time taken: 0.000000
+
+Writing Reduced counts to output file
+Done Writing! Time taken: 1.072513
+
+Total time taken for the execution: 31.588963
+------------------------------------------------
+srun ./serial -r 20 -h 10000 -q 4
+Increasing the number of queues and Tables
+Files to be repeated: 20 time(s)
+Hash Size to use: 10000
+Queue_Table_count to use: 4
+Done Queuing 340 files! Time taken: 0.002415
+
+Number of Queues and Tables: 4
+Number of files per Q&T: 85
+
+Queuing Lines by reading files in the FilesQueue
+Done Populating lines! Time taken: 1.072933
+
+Hashing words by reading words in the LinesQueue
+HASH_SIZE: 10000
+Done Hashing words! Time taken: 11.283486
+
+Reducing the populated words in HashTable
+Done Reducing! Time taken: 0.052421
+
+Writing Reduced counts to output file
+Done Writing! Time taken: 0.016094
+
+Total time taken for the execution: 12.427458
+------------------------------------------------
+------------------------------------------------

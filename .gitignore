@@ -1,10 +1,16 @@
 # ignore all -- workaround to ignore the executables
 *
 # Unignore all with extensions
+!*/
 !*.*
-
 
 **.o
 
-output/parallel/**
-output/serial/**
+# Ignore output dirs and files
+output/parallel/*.txt
+output/serial/*.txt
+pout/*.txt
+slurm*
+
+# Ignore vscode settings
+.vscode/

@@ -2,8 +2,8 @@
 # make        # compile all binary
 # make clean  # remove ALL binaries and objects
 
-CC = gcc
-CFLAGS = 
+CC = mpicc
+CFLAGS = -std=c11 -std=gnu99 
 INCLUDES = -I../include
 LFLAGS = -L../lib
 LIBS = -lm -fopenmp
@@ -19,10 +19,22 @@ all: ${EXECS}
 
 ${EXECS}:  %: %.o
 	@echo "creating the executable.."
-	$(CC) $(INCLUDES) -o $@ $< $(LFLAGS) $(LIBS)
+	$(CC) $(CFLAGS) $(INCLUDES) -o $@ $< $(LFLAGS) $(LIBS)
 
 .c.o:
-	$(CC) $(INCLUDES) -c $< -o $@ $(LIBS)
+	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@ $(LIBS)
+
+serial:
+	mpicc -std=c11 -std=gnu99 -fopenmp -o serial serial.c -fopenmp
+
+openmp:
+	mpicc -std=c11 -std=gnu99 -fopenmp -o parallel parallel.c
+
+omp-par-read-map:
+	mpicc  -std=c11 -std=gnu99 -fopenmp -o parallel_read_map parallel_read_map.c 
+
+mpi:
+	mpicc -std=c11 -std=gnu99  -fopenmp -o mpi_parallel mpi_parallel.c
 
 clean:
 	@echo "removing executables.."
