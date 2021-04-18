@@ -8,23 +8,13 @@
 #include "util/hashTable.h"
 #include "util/util.h"
 
-#define NUM_THREADS 16
-#define NUM_FILES 30
+#define NUM_THREADS 8
+#define REPEAT_FILES 10
 #define HASH_CAPACITY 50000
 
 extern int errno;
 int DEBUG_MODE = 0;
 int PRINT_MODE = 1;
-
-void delay(int milis)
-{
-    // Storing start time
-    clock_t start_time = clock();
-
-    // looping till required time is not achieved
-    while (clock() < start_time + milis)
-        ;
-}
 
 void populateHashMap2(struct Queue *q, struct hashtable *hashMap)
 {
@@ -88,7 +78,17 @@ int main(int argc, char **argv)
     int file_count = 0;
     struct Queue *file_name_queue;
     file_name_queue = createQueue();
-    file_count = get_file_list(file_name_queue, files_dir);
+
+    for (int i = 0; i < REPEAT_FILES; i++)
+    {
+        int files = get_file_list(file_name_queue, files_dir);
+        if (files == -1)
+        {
+            printf("Check input directory and rerun! Exiting!\n");
+            return 1;
+        }
+        file_count += files;
+    }
     printf("file_count %d\n", file_count);
 
     struct Queue **queues;
