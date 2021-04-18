@@ -19,6 +19,8 @@
 #define WORD_MAX_LENGTH 50
 #define HASH_CAPACITY 50000
 
+#define REPEAT_FILES 10
+
 int DEBUG_MODE = 0;
 int PRINT_MODE = 1;
 
@@ -41,8 +43,6 @@ int main(int argc, char **argv)
     char files_dir[] = "./files"; // TODO: This should be taken from argv
 
     double time = -omp_get_wtime();
-    /* file outputs for processes */
-    // declare a file
     FILE *outfile;
     // open a file whose name is based on the pid
     char buf[16];
@@ -70,7 +70,17 @@ int main(int argc, char **argv)
     if (pid == 0)
     {
         file_name_queue = createQueue();
-        file_count = get_file_list(file_name_queue, files_dir);
+
+        for (int i = 0; i < REPEAT_FILES; i++)
+        {
+            int files = get_file_list(file_name_queue, files_dir);
+            if (files == -1)
+            {
+                printf("Check input directory and rerun! Exiting!\n");
+                return 1;
+            }
+            file_count += files;
+        }
 
         int num_files_to_send = file_count / size;
         int spare = file_count % size;
@@ -125,9 +135,7 @@ int main(int argc, char **argv)
         MPI_Get_count(&status, MPI_CHAR, &recv_len);
     }
 
-    fprintf(outfile,
-            "received file name [%s] to pid %d from process 0, recv len %d\n",
-            file_names, pid, recv_len);
+    // fprintf(outfile, "received file name [%s] to pid %d from process 0, recv len %d\n", file_names, pid, recv_len);
 
     MPI_Barrier(MPI_COMM_WORLD);
     // this indicates the end of reading section of the MPI
@@ -141,7 +149,6 @@ int main(int argc, char **argv)
     {
         if (strlen(file) > 0)
         {
-            fprintf(outfile, "file [%s]\n", file);
             queue->finished = 0;
             populateQueue(queue, file);         // read file
             queue->finished = 1;
@@ -160,7 +167,7 @@ int main(int argc, char **argv)
     int h_space = HASH_CAPACITY / size;
     int h_start = h_space * pid;
     int h_end = h_space * (pid + 1);
-    fprintf(outfile, "start [%d] end [%d]\n", h_start, h_end);
+    // fprintf(outfile, "start [%d] end [%d]\n", h_start, h_end);
     // [0, HASH_CAPACITY/size] values from all the processes should be sent to 0th
     // process [HASH_CAPACITY/size, HASH_CAPACITY/size*2] values from all the ps should be
     // sent to 1st process likewise all data should be shared among the processes
@@ -204,10 +211,9 @@ int main(int argc, char **argv)
                 }
             }
 
-            fprintf(outfile, "total words to send: %d\n", j);
-
+            // fprintf(outfile, "total words to send: %d\n", j);
             MPI_Send(pairs, j, istruct, k, TAG_COMM_PAIR_LIST, MPI_COMM_WORLD);
-            fprintf(outfile, "total words sent: %d\n", j);
+            // fprintf(outfile, "total words sent: %d\n", j);
         }
         else if (pid == k)
         {
@@ -218,8 +224,8 @@ int main(int argc, char **argv)
                 MPI_Recv(recv_pairs, HASH_CAPACITY, istruct, MPI_ANY_SOURCE,
                          TAG_COMM_PAIR_LIST, MPI_COMM_WORLD, &status);
                 MPI_Get_count(&status, istruct, &recv_j);
-                fprintf(outfile, "total words to received: %d from source: %d\n",
-                        recv_j, status.MPI_SOURCE);
+                // fprintf(outfile, "total words to received: %d from source: %d\n",
+                //         recv_j, status.MPI_SOURCE);
 
                 for (int i = 0; i < recv_j; i++)
                 {
@@ -241,7 +247,7 @@ int main(int argc, char **argv)
     writeTable(hash_table, outfile, h_start, h_end);
     // writeTable(hash_table, outfile, 0, hash_table->tablesize);
     time += omp_get_wtime();
-    fprintf(outfile, "total time taken for the execution: %f\n", time);
+    fprintf(stdout, "total time taken for the execution: %f\n", time);
 
     MPI_Finalize();
     return 0;
