@@ -73,6 +73,7 @@ int main(int argc, char **argv)
         file_count = get_file_list(file_name_queue, files_dir);
 
         int num_files_to_send = file_count / size;
+        int spare = file_count % size;
 
         // iterate for all process ids in the comm world
         for (int i = 0; i < size; i++)
@@ -80,8 +81,14 @@ int main(int argc, char **argv)
             char *concat_files =
                 (char *)malloc(sizeof(char) * FILE_NAME_BUF_SIZE * num_files_to_send);
             int len = 0;
+            int send_file_count = num_files_to_send;
+            if (spare>0) {
+                send_file_count += 1;
+                spare--;
+            }
+
             // concat file names to one big char array for ease of sending
-            for (int j = 0; j < num_files_to_send; j++)
+            for (int j = 0; j < send_file_count; j++)
             {
                 if (j == 0)
                 {
@@ -92,7 +99,7 @@ int main(int argc, char **argv)
                     strcat(concat_files, file_name_queue->front->line);
                 }
                 len += file_name_queue->front->len + 1;
-                if (j != num_files_to_send - 1)
+                if (j != send_file_count - 1)
                 {
                     strcat(concat_files, ",");
                 }
@@ -135,8 +142,9 @@ int main(int argc, char **argv)
         if (strlen(file) > 0)
         {
             fprintf(outfile, "file [%s]\n", file);
-
+            queue->finished = 0;
             populateQueue(queue, file);         // read file
+            queue->finished = 1;
             populateHashMap(queue, hash_table); // map file
         }
     }
