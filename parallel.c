@@ -72,22 +72,26 @@ int main(int argc, char **argv)
         printf("\nQueuing Lines by reading files in the FilesQueue\n");
     local_time = -omp_get_wtime();
     struct Queue **queues;
-    queues = (struct Queue **)malloc(sizeof(struct Queue *) * QUEUE_TABLE_COUNT * NUM_THREADS);
-    #pragma omp parallel for shared(queues)
-    for (int i = 0; i < QUEUE_TABLE_COUNT * NUM_THREADS; i++)
+    queues = (struct Queue **)malloc(sizeof(struct Queue *) * NUM_THREADS);
+    #pragma omp parallel shared(queues) num_threads(NUM_THREADS)
     {
+        int i = omp_get_thread_num();
         queues[i] = createQueue();
         char file_name[FILE_NAME_BUF_SIZE * 3];
-        for (int j = 0; j < files_per_qt; j++)
-        {
+        while(file_name_queue->front != NULL) {
             omp_set_lock(&writelock);
+            if (file_name_queue->front == NULL) {
+                omp_unset_lock(&writelock); 
+                continue;
+            }
+            printf("thread: %d, filename: %s\n", i, file_name_queue->front->line);
             strcpy(file_name, file_name_queue->front->line);
             deQueue(file_name_queue);
-            omp_unset_lock(&writelock);
+            omp_unset_lock(&writelock);  
 
-            populateQueue(queues[i], file_name);
-            queues[i]->finished = 1; //TODO: What is this for?
+            populateQueue(queues[i], file_name);         
         }
+        queues[i]->finished = 1; //TODO: What is this for?
     }
     omp_destroy_lock(&writelock); // TODO: Can keep this lock if another queue needs to be locked below
     local_time += omp_get_wtime();
@@ -103,9 +107,9 @@ int main(int argc, char **argv)
     }
     local_time = -omp_get_wtime();
     struct hashtable **hash_tables;
-    hash_tables = (struct hashtable **)malloc(sizeof(struct hashtable *) * QUEUE_TABLE_COUNT * NUM_THREADS);
+    hash_tables = (struct hashtable **)malloc(sizeof(struct hashtable *) * NUM_THREADS);
     #pragma omp parallel for shared(queues, hash_tables)
-    for (int i = 0; i < QUEUE_TABLE_COUNT * NUM_THREADS; i++)
+    for (int i = 0; i < NUM_THREADS; i++)
     {
         hash_tables[i] = createtable(HASH_SIZE);
         populateHashMap(queues[i], hash_tables[i]);
@@ -125,8 +129,8 @@ int main(int argc, char **argv)
     if (PRINT_MODE)
         printf("\nReducing the populated words in HashTable\n");
     local_time = -omp_get_wtime();
-    // struct hashtable *final_table = createtable(HASH_SIZE);
-    #pragma omp parallel shared(hash_tables)
+    struct hashtable *final_table = createtable(HASH_SIZE);
+    #pragma omp parallel shared(hash_tables, final_table)
     {
         int threadn = omp_get_thread_num();
         int tot_threads = omp_get_num_threads();
@@ -134,20 +138,13 @@ int main(int argc, char **argv)
         int start = threadn * interval;
         int end = start + interval;
 
-        if (end > hash_tables[threadn * QUEUE_TABLE_COUNT]->tablesize)
+        if (end > hash_tables[threadn]->tablesize)
         {
-            end = hash_tables[threadn * QUEUE_TABLE_COUNT]->tablesize;
+            end = hash_tables[threadn]->tablesize;
         }
         for (int i = start; i < end; i++)
         {
-            if (QUEUE_TABLE_COUNT == 1)
-            {
-                if (DEBUG_MODE)
-                    printf("Skipping reduce as the hash_table count is 1");
-                break;
-            }
-            reduce(&hash_tables[threadn * QUEUE_TABLE_COUNT + 1], hash_tables[threadn * QUEUE_TABLE_COUNT],
-                   QUEUE_TABLE_COUNT - 1, i);
+            reduce(hash_tables, final_table, NUM_THREADS, i);
         }
     }
     local_time += omp_get_wtime();
@@ -162,21 +159,21 @@ int main(int argc, char **argv)
     if (PRINT_MODE)
         printf("\nWriting Reduced counts to output file\n");
     local_time = -omp_get_wtime();
-    #pragma omp parallel shared(hash_tables)
+    #pragma omp parallel shared(final_table)
     {
         int threadn = omp_get_thread_num();
         int tot_threads = omp_get_num_threads();
         int interval = HASH_SIZE / tot_threads;
         int start = threadn * interval;
         int end = start + interval;
-        if (end > hash_tables[threadn * QUEUE_TABLE_COUNT]->tablesize)
+        if (end > final_table->tablesize)
         {
-            end = hash_tables[threadn * QUEUE_TABLE_COUNT]->tablesize;
+            end = final_table->tablesize;
         }
         char *filename = (char *)malloc(sizeof(char) * 30);
         sprintf(filename, "output/parallel/%d.txt", threadn);
 
-        writePartialTable(hash_tables[threadn * QUEUE_TABLE_COUNT], filename, start, end);
+        writePartialTable(final_table, filename, start, end);
     }
     local_time += omp_get_wtime();
     if (PRINT_MODE)
