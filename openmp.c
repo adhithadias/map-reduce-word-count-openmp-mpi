@@ -16,55 +16,6 @@ extern int errno;
 int DEBUG_MODE = 0;
 int PRINT_MODE = 1;
 
-void populateHashMap2(struct Queue *q, struct hashtable *hashMap)
-{
-    struct node *node = NULL;
-
-    // wait until queue is good to start
-    while (q == NULL)
-    {
-        delay(5);
-        continue;
-    }
-
-    int count = 0;
-    while (q->front != NULL || !q->finished)
-    {
-        if (q->front == NULL)
-        {
-            printf("map waiting for data ..\n");
-            delay(5);
-            continue;
-        }
-        count++;
-        if (count % 10000 == 0)
-        {
-            printf(".");
-        }
-
-        char str[q->front->len];
-        strcpy(str, q->front->line);
-        char *token;
-        char *rest = str;
-
-        // https://www.geeksforgeeks.org/strtok-strtok_r-functions-c-examples/
-        while ((token = strtok_r(rest, " ", &rest)))
-        {
-
-            char *word = format_string(token);
-
-            if (strlen(word) > 0)
-            {
-                node = add(hashMap, word, 0);
-                node->frequency++;
-            }
-            free(word);
-        }
-
-        deQueue(q);
-    }
-}
-
 int main(int argc, char **argv)
 {
     char files_dir[] = "./files"; // TODO: This should be taken from argv
