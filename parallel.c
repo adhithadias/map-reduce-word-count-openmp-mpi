@@ -9,7 +9,7 @@
 
 extern int errno;
 int DEBUG_MODE = 0;
-int PRINT_MODE = 1;
+int PRINT_MODE = 0;
 
 int main(int argc, char **argv)
 {
@@ -21,6 +21,8 @@ int main(int argc, char **argv)
     int repeat_files = 1;
     double global_time = -omp_get_wtime();
     double local_time;
+    char csv_out[200] = "";
+    char tmp_out[20] = "";
 
     // Parsing User inputs from run command with getopt
     int arg_parse = process_args(argc, argv, files_dir, &repeat_files, &DEBUG_MODE, &PRINT_MODE, &HASH_SIZE,
@@ -57,6 +59,8 @@ int main(int argc, char **argv)
         file_count += files;
     }
     local_time += omp_get_wtime();
+    sprintf(tmp_out, "%d, %d, %d, %.4f, ", file_count, HASH_SIZE, NUM_THREADS, local_time);
+    strcat(csv_out, tmp_out);
     if (PRINT_MODE)
         printf("Done Queuing %d files! Time taken: %f\n", file_count, local_time);
     /**********************************************************************************************************/
@@ -97,6 +101,8 @@ int main(int argc, char **argv)
     }
     omp_destroy_lock(&writelock); // TODO: Can keep this lock if another queue needs to be locked below
     local_time += omp_get_wtime();
+    sprintf(tmp_out, "%.4f, ", local_time);
+    strcat(csv_out, tmp_out);
     if (PRINT_MODE)
         printf("Done Populating lines! Time taken: %f\n", local_time);
     /**********************************************************************************************************/
@@ -117,6 +123,8 @@ int main(int argc, char **argv)
         populateHashMap(queues[i], hash_tables[i]);
     }
     local_time += omp_get_wtime();
+    sprintf(tmp_out, "%.4f, ", local_time);
+    strcat(csv_out, tmp_out);
     if (PRINT_MODE)
         printf("Done Hashing words! Time taken: %f\n", local_time);
     /**********************************************************************************************************/
@@ -150,6 +158,8 @@ int main(int argc, char **argv)
         }
     }
     local_time += omp_get_wtime();
+    sprintf(tmp_out, "%.4f, ", local_time);
+    strcat(csv_out, tmp_out);
     if (PRINT_MODE)
         printf("Done Reducing! Time taken: %f\n", local_time);
     /**********************************************************************************************************/
@@ -178,6 +188,8 @@ int main(int argc, char **argv)
         writePartialTable(final_table, filename, start, end);
     }
     local_time += omp_get_wtime();
+    sprintf(tmp_out, "%.4f, ", local_time);
+    strcat(csv_out, tmp_out);
     if (PRINT_MODE)
         printf("Done Writing! Time taken: %f\n", local_time);
     /**********************************************************************************************************/
@@ -201,7 +213,11 @@ int main(int argc, char **argv)
     /**********************************************************************************************************/
 
     global_time += omp_get_wtime();
-    printf("\nTotal time taken for the execution: %f\n", global_time);
+    sprintf(tmp_out, "%.4f, ", global_time);
+    strcat(csv_out, tmp_out);
+    if (PRINT_MODE)
+        printf("\nTotal time taken for the execution: %f\n", global_time);
+    printf("\nNum_files, Hash_size, Num_Threads, Qfiles_time, Qlines_time, HashW_time, Reduce_time, Write_time, Total_time\n%s\n", csv_out);
 
     return EXIT_SUCCESS;
 }
