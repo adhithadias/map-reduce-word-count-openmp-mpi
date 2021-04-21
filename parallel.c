@@ -22,7 +22,7 @@ int main(int argc, char **argv)
     double local_time;
 
     // Parsing User inputs from run command with getopt
-    int arg_parse = process_args(argc, argv, files_dir, &repeat_files, &DEBUG_MODE, &HASH_SIZE,
+    int arg_parse = process_args(argc, argv, files_dir, &repeat_files, &DEBUG_MODE, &PRINT_MODE, &HASH_SIZE,
                                  &QUEUE_TABLE_COUNT, &NUM_THREADS);
     if (arg_parse == -1)
     {
