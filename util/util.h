@@ -185,7 +185,7 @@ int process_args(int argc, char **argv, char *files_dir, int *repeat_files, int 
             *DEBUG_MODE = 1;
             break;
         case 'p':
-            printf("Running in debug mode\n");
+            printf("Running in print mode\n");
             *PRINT_MODE = 1;
             break;
         case ':':
