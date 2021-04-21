@@ -217,7 +217,7 @@ int main(int argc, char **argv)
     strcat(csv_out, tmp_out);
     if (PRINT_MODE)
         printf("\nTotal time taken for the execution: %f\n", global_time);
-    printf("\nNum_files, Hash_size, Num_Threads, Qfiles_time, Qlines_time, HashW_time, Reduce_time, Write_time, Total_time\n%s\n", csv_out);
+    printf("Num_files, Hash_size, Num_Threads, Qfiles_time, Qlines_time, HashW_time, Reduce_time, Write_time, Total_time,\n%s\n\n", csv_out);
 
     return EXIT_SUCCESS;
 }
