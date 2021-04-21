@@ -1,8 +1,19 @@
 #!/bin/bash
 # FILENAME:  submit_parallel.sub
 #SBATCH --nodes=1
-#SBATCH --ntasks=20
-#SBATCH --time=00:02:00
+#SBATCH --ntasks=8
+#SBATCH --time=00:5:00
+# Requesting 8 tasks for running below tasks
 
-export OMP_NUM_THREADS=20
-./parallel -r 20 -t 20
+./parallel -r 20 -t 2
+./parallel -r 30 -t 2
+./parallel -r 40 -t 2
+# ./parallel -r 50 -t 2
+./parallel -r 20 -t 4
+./parallel -r 30 -t 4
+./parallel -r 40 -t 4
+# ./parallel -r 50 -t 4
+./parallel -r 20 -t 8
+./parallel -r 30 -t 8
+./parallel -r 40 -t 8
+# ./parallel -r 50 -t 8
