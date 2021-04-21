@@ -2,6 +2,13 @@
 # FILENAME:  submit_serial.sub
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --time=00:02:00
+#SBATCH --time=00:04:00
 
+./serial -r 1
+./serial -r 2
+./serial -r 5
+./serial -r 10
 ./serial -r 20
+./serial -r 30
+./serial -r 40
+./serial -r 50
