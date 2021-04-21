@@ -1,0 +1,16 @@
+#!/bin/bash
+# FILENAME:  submit_parallel.sub
+#SBATCH --nodes=1
+#SBATCH --ntasks=20
+#SBATCH --time=00:2:00
+# Requesting 20 tasks for running below tasks
+
+./parallel -r 20 -t 16
+./parallel -r 30 -t 16
+./parallel -r 40 -t 16
+./parallel -r 50 -t 16
+./parallel -r 20 -t 20
+./parallel -r 30 -t 20
+./parallel -r 40 -t 20
+./parallel -r 50 -t 20
+# slurmstepd: error: Detected 40 oom-kill event(s) in step 76433.batch cgroup. Some of your processes may have been killed by the cgroup out-of-memory handler.
