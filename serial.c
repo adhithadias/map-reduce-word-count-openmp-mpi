@@ -54,9 +54,7 @@ int main(int argc, char **argv)
         file_count += files;
     }
     local_time += omp_get_wtime();
-    sprintf(tmp_out, "%d, %d, ", file_count, HASH_SIZE);
-    strcat(csv_out, tmp_out);
-    sprintf(tmp_out, "%.4f, ", local_time);
+    sprintf(tmp_out, "%d, %d, %.4f, ", file_count, HASH_SIZE, local_time);
     strcat(csv_out, tmp_out);
     if (PRINT_MODE)
         printf("Done Queuing %d files! Time taken: %f\n", file_count, local_time);
@@ -172,7 +170,7 @@ int main(int argc, char **argv)
     strcat(csv_out, tmp_out);
     if (PRINT_MODE)
         printf("\nTotal time taken for the execution: %f\n", global_time);
-    printf("\nCSV_Output:\nNum_files, Hash_size, Qfiles_time, Qlines_time, HashW_time, Reduce_time, Write_time, Total_time\n%s\n", csv_out);
+    printf("\nNum_files, Hash_size, Qfiles_time, Qlines_time, HashW_time, Reduce_time, Write_time, Total_time\n%s\n", csv_out);
 
     return EXIT_SUCCESS;
 }
