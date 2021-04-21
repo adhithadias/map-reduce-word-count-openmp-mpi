@@ -151,12 +151,12 @@ void reduce(struct hashtable **hash_tables, struct hashtable *final_table, int f
     }
 }
 
-int process_args(int argc, char **argv, char *files_dir, int *repeat_files, int *DEBUG_MODE, int *HASH_SIZE,
-                 int *QUEUE_TABLE_COUNT, int *NUM_THREADS)
+int process_args(int argc, char **argv, char *files_dir, int *repeat_files, int *DEBUG_MODE, int *PRINT_MODE, 
+                 int *HASH_SIZE, int *QUEUE_TABLE_COUNT, int *NUM_THREADS)
 {
     // https://stackoverflow.com/questions/17877368/getopt-passing-string-parameter-for-argument
     int opt;
-    while ((opt = getopt(argc, argv, "d:r:h:q:t:g")) != -1)
+    while ((opt = getopt(argc, argv, "d:r:h:q:t:gp")) != -1)
     {
         switch (opt)
         {
@@ -183,6 +183,10 @@ int process_args(int argc, char **argv, char *files_dir, int *repeat_files, int 
         case 'g':
             printf("Running in debug mode\n");
             *DEBUG_MODE = 1;
+            break;
+        case 'p':
+            printf("Running in debug mode\n");
+            *PRINT_MODE = 1;
             break;
         case ':':
             fprintf(stderr, "Option -%c requires an argument to be given\n", optopt);
