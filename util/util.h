@@ -6,6 +6,7 @@
 #include <dirent.h>
 #include <unistd.h>
 #include "queue.h"
+#include <time.h>
 
 extern int errno;
 extern int DEBUG_MODE;
@@ -16,10 +17,8 @@ void delay(int milli_seconds)
 {  
     // Storing start time
     clock_t start_time = clock();
-  
     // looping till required time is not achieved
-    while (clock() < start_time + milli_seconds)
-        ;
+    while (clock() < start_time + milli_seconds);
 }
 
 int get_file_list(struct Queue *file_name_queue, char *dirpath)
