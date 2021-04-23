@@ -21,8 +21,9 @@ int main(int argc, char **argv)
     int repeat_files = 1;
     double global_time = -omp_get_wtime();
     double local_time;
-    char csv_out[200] = "";
-    char tmp_out[20] = "";
+    char csv_out[400] = "";
+    char tmp_out[200] = "";  // Buffer was small. sprintf caused a buffer overflow and modified the inputs. 
+    // https://stackoverflow.com/questions/3706086/using-sprintf-will-change-the-specified-variable
 
     // Parsing User inputs from run command with getopt
     int arg_parse = process_args(argc, argv, files_dir, &repeat_files, &DEBUG_MODE, &PRINT_MODE, &HASH_SIZE,
