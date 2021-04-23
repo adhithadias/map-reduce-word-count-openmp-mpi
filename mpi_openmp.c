@@ -19,6 +19,7 @@
 #define WORD_MAX_LENGTH 50
 #define HASH_CAPACITY 50000
 
+#define NUM_THREADS 4
 #define REPEAT_FILES 10
 
 int DEBUG_MODE = 0;
@@ -39,6 +40,11 @@ int main(int argc, char **argv)
     MPI_Comm_size(MPI_COMM_WORLD, &size);
     MPI_Comm_rank(MPI_COMM_WORLD, &pid);
     MPI_Get_processor_name(p_name, &p_name_len);
+
+    if(NUM_THREADS<2 && NUM_THREADS%2!=0) {
+        fprintf(stderr, "number of threads cannot be a odd or below 2\n");
+        exit(EXIT_FAILURE);
+    }
 
     char files_dir[] = "./files"; // TODO: This should be taken from argv
 
@@ -62,6 +68,7 @@ int main(int argc, char **argv)
     int done_sent_p_count = 0;
 
     struct Queue *file_name_queue;
+    file_name_queue = createQueue();
     struct Queue *files_to_read;
     MPI_Barrier(MPI_COMM_WORLD);
 
@@ -69,8 +76,6 @@ int main(int argc, char **argv)
 
     if (pid == 0)
     {
-        file_name_queue = createQueue();
-
         for (int i = 0; i < REPEAT_FILES; i++)
         {
             int files = get_file_list(file_name_queue, files_dir);
@@ -135,28 +140,101 @@ int main(int argc, char **argv)
         MPI_Get_count(&status, MPI_CHAR, &recv_len);
     }
 
-    // fprintf(outfile, "received file name [%s] to pid %d from process 0, recv len %d\n", file_names, pid, recv_len);
+    fprintf(outfile,
+            "received file name [%s] to pid %d from process 0, recv len %d\n",
+            file_names, pid, recv_len);
 
-    MPI_Barrier(MPI_COMM_WORLD);
+    // MPI_Barrier(MPI_COMM_WORLD);
     // this indicates the end of reading section of the MPI
 
-    struct Queue *queue = createQueue();
-    struct hashtable *hash_table = createtable(HASH_CAPACITY);
-
-    // this can be run with multiple threads -- can be changed later
     char *file;
+    int received_file_count = 0;
     while ((file = strtok_r(file_names, ",", &file_names)))
     {
         if (strlen(file) > 0)
         {
-            queue->finished = 0;
-            populateQueue(queue, file);         // read file
-            queue->finished = 1;
-            populateHashMap(queue, hash_table); // map file
+            enQueue(file_name_queue, file, strlen(file));
+            received_file_count++;
         }
     }
-
     MPI_Barrier(MPI_COMM_WORLD);
+
+    omp_lock_t readlock;
+    omp_init_lock(&readlock);
+    omp_lock_t queuelock[NUM_THREADS/2];
+
+    struct Queue **queues;
+    struct hashtable **hash_tables;
+
+    // we will divide the number of threads and use half for reading and half for mapping
+    // therefore, only half the thread number of queues and hash_tables are required
+    queues = (struct Queue **)malloc(sizeof(struct Queue *) * NUM_THREADS/2);
+    hash_tables = (struct hashtable **)malloc(sizeof(struct hashtable *) * NUM_THREADS/2);
+
+    for (int k=0; k<NUM_THREADS/2; k++) {
+        omp_init_lock(&queuelock[k]);
+        queues[k] = createQueue();
+    }
+
+    #pragma omp parallel shared(queues, hash_tables, file_name_queue, readlock, queuelock) num_threads(NUM_THREADS)
+    {
+        int threadn = omp_get_thread_num();
+        if (threadn < NUM_THREADS/2) {
+            while (file_name_queue->front != NULL)
+            {
+                char file_name[30];
+                omp_set_lock(&readlock);
+                if (file_name_queue->front == NULL) {
+                    omp_unset_lock(&readlock);
+                    continue;
+                }
+                strcpy(file_name, file_name_queue->front->line);
+                deQueue(file_name_queue);
+                omp_unset_lock(&readlock);
+
+                // populateQueue(queues[threadn], file_name);
+                populateQueueWL(queues[threadn], file_name, &queuelock[threadn]);
+            }
+            queues[threadn]->finished = 1;
+        } else {
+            int thread = threadn - NUM_THREADS/2;
+            delay(1000);
+            hash_tables[thread] = createtable(HASH_CAPACITY);
+            // populateHashMap(queues[thread], hash_tables[thread]);
+            populateHashMapWL(queues[thread], hash_tables[thread], &queuelock[thread]);
+        }
+        
+    }
+    omp_destroy_lock(&readlock);
+    for (int k=0; k<NUM_THREADS/2; k++) {
+        omp_destroy_lock(&queuelock[k]);
+    }
+    // MPI_Barrier(MPI_COMM_WORLD);
+    // fprintf(stdout, "reading and mapping done.. size: %d, rank: %d\n", size, pid);
+
+    // reduction locally inside the process
+    struct hashtable *final_table = createtable(HASH_CAPACITY);
+    #pragma omp parallel shared(final_table, hash_tables) num_threads(NUM_THREADS)
+    {
+        int threadn = omp_get_thread_num();
+        int tot_threads = omp_get_num_threads();
+        int interval = HASH_CAPACITY / tot_threads;
+        int start = threadn * interval;
+        int end = start + interval;
+
+        if (end > final_table->tablesize)
+        {
+            end = final_table->tablesize;
+        }
+
+        int i;
+        for (i = start; i < end; i++)
+        {
+            reduce(hash_tables, final_table, NUM_THREADS/2, i);
+        }
+    }
+    MPI_Barrier(MPI_COMM_WORLD);
+    // fprintf(stdout, "reduction inside the process done.. size: %d, rank: %d\n", size, pid);
 
     // ---------------------------------------------------------------------
 
@@ -198,7 +276,7 @@ int main(int argc, char **argv)
             struct node *current = NULL;
             for (int i = h_space * k; i < h_space * (k + 1); i++)
             {
-                current = hash_table->table[i];
+                current = final_table->table[i];
                 if (current == NULL)
                     continue;
                 while (current != NULL)
@@ -224,15 +302,14 @@ int main(int argc, char **argv)
                 MPI_Recv(recv_pairs, HASH_CAPACITY, istruct, MPI_ANY_SOURCE,
                          TAG_COMM_PAIR_LIST, MPI_COMM_WORLD, &status);
                 MPI_Get_count(&status, istruct, &recv_j);
-                // fprintf(outfile, "total words to received: %d from source: %d\n",
-                //         recv_j, status.MPI_SOURCE);
+                // fprintf(outfile, "total words to received: %d from source: %d\n",recv_j, status.MPI_SOURCE);
 
                 for (int i = 0; i < recv_j; i++)
                 {
                     pair recv_pair = recv_pairs[i];
                     int frequency = recv_pair.count;
 
-                    struct node *node = add(hash_table, recv_pair.word, 0);
+                    struct node *node = add(final_table, recv_pair.word, 0);
                     node->frequency += recv_pair.count;
                 }
             }
@@ -244,8 +321,8 @@ int main(int argc, char **argv)
     // --------------------------------------------------------------
 
     // write function should be only called for the respective section of the
-    writeTable(hash_table, outfile, h_start, h_end);
-    // writeTable(hash_table, outfile, 0, hash_table->tablesize);
+    writeTable(final_table, outfile, h_start, h_end);
+    // writeTable(final_table, outfile, 0, final_table->tablesize);
     time += omp_get_wtime();
     fprintf(stdout, "total time taken for the execution: %f\n", time);
 

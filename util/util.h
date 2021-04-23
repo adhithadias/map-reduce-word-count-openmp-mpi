@@ -12,6 +12,16 @@ extern int DEBUG_MODE;
 
 #define FILE_NAME_BUF_SIZE 50
 
+void delay(int milli_seconds)
+{  
+    // Storing start time
+    clock_t start_time = clock();
+  
+    // looping till required time is not achieved
+    while (clock() < start_time + milli_seconds)
+        ;
+}
+
 int get_file_list(struct Queue *file_name_queue, char *dirpath)
 {
     DIR *dir;
@@ -106,6 +116,10 @@ void populateHashMap(struct Queue *q, struct hashtable *hashMap)
         continue;
     while (q->front || !q->finished)
     {
+        if (q->front == NULL) {
+            delay(10);
+            continue;
+        }
         char str[q->front->len];
         strcpy(str, q->front->line);
         char *token;
@@ -125,10 +139,83 @@ void populateHashMap(struct Queue *q, struct hashtable *hashMap)
     }
 }
 
-void reduce(struct hashtable **hash_tables, struct hashtable *final_table, int file_count, int location)
+void populateQueueWL(struct Queue *q, char *file_name, omp_lock_t *queuelock)
+{
+    // file open operation
+    FILE *filePtr;
+    if ((filePtr = fopen(file_name, "r")) == NULL)
+    {
+        fprintf(stderr, "could not open file: [%p], err: %d, %s\n", filePtr, errno, strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+
+    // read line by line from the file and add to the queue
+    size_t len = 0;
+    char *line = NULL;
+    int line_count = 0;
+    while (getline(&line, &len, filePtr) != -1)
+    {
+        // separated out the node creation to save some time lost due to locking
+        struct QNode *temp = newNode(line, len);
+
+        // enQueue section should be locked --------------------------------------------------------------------- lock this
+        omp_set_lock(queuelock);
+        enQueueData(q, temp);
+        omp_unset_lock(queuelock);
+
+        line_count++;
+    }
+    // printf("line count %d, %s\n", line_count, file_name);
+    fclose(filePtr);
+    free(line);
+}
+
+void populateHashMapWL(struct Queue *q, struct hashtable *hashMap, omp_lock_t *queuelock)
 {
     struct node *node = NULL;
-    for (int i = 0; i < file_count; i++)
+    // wait until queue is good to start. Useful for parallel accesses.
+    while (q == NULL)
+        continue;
+    while (q->front || !q->finished)
+    {
+        // this block should be locked ------------------------------------------------------------------------------//
+        omp_set_lock(queuelock);
+        if (q->front == NULL) {
+            omp_unset_lock(queuelock);
+            continue;
+        }
+        char str[q->front->len];
+        strcpy(str, q->front->line);
+        struct QNode *temp = deQueueData(q);
+        omp_unset_lock(queuelock);
+
+        // separated out freeing part to save some time lost due to locking
+        if (temp != NULL) {
+            free(temp->line);
+            free(temp);
+        }
+
+        
+        char *token;
+        char *rest = str;
+        // https://www.geeksforgeeks.org/strtok-strtok_r-functions-c-examples/
+        while ((token = strtok_r(rest, " ", &rest)))
+        {
+            char *word = format_string(token);
+            if (strlen(word) > 0)
+            {
+                node = add(hashMap, word, 0);
+                node->frequency++;
+            }
+            free(word);
+        }
+    }
+}
+
+void reduce(struct hashtable **hash_tables, struct hashtable *final_table, int num_hashtables, int location)
+{
+    struct node *node = NULL;
+    for (int i = 0; i < num_hashtables; i++)
     {
         if (hash_tables[i] == NULL || hash_tables[i]->table[location] == NULL)
         {
