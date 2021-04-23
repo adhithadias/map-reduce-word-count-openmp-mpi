@@ -2,7 +2,14 @@
 # FILENAME:  submit_parallel_read_map.sub
 #SBATCH --nodes=1
 #SBATCH --ntasks=20
-#SBATCH --time=00:02:00
+#SBATCH --time=00:15:00
+# Requesting 20 tasks for running below tasks
 
-export OMP_NUM_THREADS=20
-./parallel_read_map 
+./parallel_read_map_new -r 20 -t 1
+./parallel_read_map_new -r 30 -t 1
+./parallel_read_map_new -r 40 -t 1
+./parallel_read_map_new -r 50 -t 1
+./parallel_read_map_new -r 20 -t 2
+./parallel_read_map_new -r 30 -t 2
+./parallel_read_map_new -r 40 -t 2
+./parallel_read_map_new -r 50 -t 2
