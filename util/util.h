@@ -54,8 +54,12 @@ int get_file_list(struct Queue *file_name_queue, char *dirpath)
         strcat(file_name, in_file->d_name);
         if (DEBUG_MODE)
             printf("Queing file: %s\n", file_name);
-        enQueue(file_name_queue, file_name, strlen(file_name));
-        file_count++;
+        #pragma omp critical
+        {
+            // To be executed only by one thread at a time as there is a single queue
+            enQueue(file_name_queue, file_name, strlen(file_name));
+            file_count++;
+        }
     }
     if (DEBUG_MODE)
         printf("Done Queing all files\n\n");
@@ -163,6 +167,52 @@ void populateQueueWL(struct Queue *q, char *file_name, omp_lock_t *queuelock)
         omp_unset_lock(queuelock);
 
         line_count++;
+    }
+    // printf("line count %d, %s\n", line_count, file_name);
+    fclose(filePtr);
+    free(line);
+}
+
+void populateQueueWL_ML(struct Queue *q, char *file_name, omp_lock_t *queuelock)
+{
+    // file open operation
+    FILE *filePtr;
+    if ((filePtr = fopen(file_name, "r")) == NULL)
+    {
+        fprintf(stderr, "could not open file: [%p], err: %d, %s\n", filePtr, errno, strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+
+    // read line by line from the file and add to the queue
+    size_t len = 0;
+    char *line = NULL;
+    int line_count = 0;
+    int file_done = 0;
+    int lines_per_iter = 30;
+    int actual_lines;
+    struct QNode **temp_nodes;
+    temp_nodes = (struct QNode **) malloc(sizeof(struct QNode *) * lines_per_iter);
+    while (file_done != 1)
+    {
+        actual_lines = 0;
+        for (int i=0; i<lines_per_iter; i++){
+            if (getline(&line, &len, filePtr) == -1) {
+                file_done = 1;
+                break;
+            } else {
+                // separated out the node creation to save some time lost due to locking
+                temp_nodes[i] = newNode(line, len);
+                actual_lines++;
+                line_count++;
+            }
+        }
+        omp_set_lock(queuelock);
+        for (int i=0; i<actual_lines; i++){
+            if (temp_nodes[i] != NULL)
+                enQueueData(q, temp_nodes[i]);
+        }
+        omp_unset_lock(queuelock);
+
     }
     // printf("line count %d, %s\n", line_count, file_name);
     fclose(filePtr);
