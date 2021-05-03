@@ -233,10 +233,10 @@ void populateHashMapWL(struct Queue *q, struct hashtable *hashMap, omp_lock_t *q
             omp_unset_lock(queuelock);
             continue;
         }
-        char str[q->front->len];
-        strcpy(str, q->front->line);
         struct QNode *temp = deQueueData(q);
         omp_unset_lock(queuelock);
+        char str[temp->len];
+        strcpy(str, temp->line);
 
         // separated out freeing part to save some time lost due to locking
         if (temp != NULL) {
@@ -260,6 +260,61 @@ void populateHashMapWL(struct Queue *q, struct hashtable *hashMap, omp_lock_t *q
         }
     }
 }
+
+// void populateHashMapWL_ML(struct Queue *q, struct hashtable *hashMap, omp_lock_t *queuelock)
+// {   // Experimental Code For multi line hashing from the queue.
+//     struct node *node = NULL;
+//     int lines_per_iter = 30;
+//     struct QNode **temp_nodes;
+//     temp_nodes = (struct QNode **) malloc(sizeof(struct QNode *) * lines_per_iter);
+//     int queue_empty = 0;
+//     int actual_lines;
+//     // wait until queue is good to start. Useful for parallel accesses.
+//     while (q == NULL){
+//         delay(10);
+//         continue;
+//     }
+//     while (q->front || !q->finished) {
+//         // this block should be locked ------------------------------------------------------------------------------//
+//         omp_set_lock(queuelock);
+//         for (int i=0; i<lines_per_iter; i++){
+//             if (q->front == NULL) {
+//                 queue_empty = 1;
+//                 break;
+//             }
+//             actual_lines++;
+//             temp_nodes[i] = deQueueData(q);
+//         }
+//         omp_unset_lock(queuelock);
+//         for (int i=0; i<lines_per_iter; i++){
+//             char str[temp_nodes[i]->len];
+//             strcpy(str, temp_nodes[i]->line);
+//         }
+//         if (queue_empty) {
+//             continue;
+//         }
+//         // separated out freeing part to save some time lost due to locking
+//         for (int i=0; i<lines_per_iter; i++){
+//             if (temp_nodes[i] != NULL) {
+//                 free(temp_nodes[i]->line);
+//                 free(temp_nodes[i]);
+//             }
+        
+//         char *token;
+//         char *rest = str;
+//         // https://www.geeksforgeeks.org/strtok-strtok_r-functions-c-examples/
+//         while ((token = strtok_r(rest, " ", &rest)))
+//         {
+//             char *word = format_string(token);
+//             if (strlen(word) > 0)
+//             {
+//                 node = add(hashMap, word, 0);
+//                 node->frequency++;
+//             }
+//             free(word);
+//         }
+//     }
+// }
 
 void reduce(struct hashtable **hash_tables, struct hashtable *final_table, int num_hashtables, int location)
 {
