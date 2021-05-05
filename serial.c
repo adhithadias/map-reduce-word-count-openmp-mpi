@@ -9,7 +9,7 @@
 
 extern int errno;
 int DEBUG_MODE = 0;
-int PRINT_MODE = 1;
+int PRINT_MODE = 0;
 
 int main(int argc, char **argv)
 {
@@ -21,9 +21,12 @@ int main(int argc, char **argv)
     int repeat_files = 1;
     double global_time = -omp_get_wtime();
     double local_time;
+    char csv_out[400] = "";
+    char tmp_out[200] = "";  // Buffer was small. sprintf caused a buffer overflow and modified the inputs. 
+    // https://stackoverflow.com/questions/3706086/using-sprintf-will-change-the-specified-variable
 
     // Parsing User inputs from run command with getopt
-    int arg_parse = process_args(argc, argv, files_dir, &repeat_files, &DEBUG_MODE, &HASH_SIZE,
+    int arg_parse = process_args(argc, argv, files_dir, &repeat_files, &DEBUG_MODE, &PRINT_MODE, &HASH_SIZE,
                                  &QUEUE_TABLE_COUNT, &NUM_THREADS); // NUM_THREADS is dummy here
     if (arg_parse == -1)
     {
@@ -52,6 +55,8 @@ int main(int argc, char **argv)
         file_count += files;
     }
     local_time += omp_get_wtime();
+    sprintf(tmp_out, "%d, %d, %.4f, ", file_count, HASH_SIZE, local_time);
+    strcat(csv_out, tmp_out);
     if (PRINT_MODE)
         printf("Done Queuing %d files! Time taken: %f\n", file_count, local_time);
     /**********************************************************************************************************/
@@ -80,6 +85,8 @@ int main(int argc, char **argv)
         }
     }
     local_time += omp_get_wtime();
+    sprintf(tmp_out, "%.4f, ", local_time);
+    strcat(csv_out, tmp_out);
     if (PRINT_MODE)
         printf("Done Populating lines! Time taken: %f\n", local_time);
     /**********************************************************************************************************/
@@ -99,6 +106,8 @@ int main(int argc, char **argv)
         populateHashMap(queues[i], hash_tables[i]);
     }
     local_time += omp_get_wtime();
+    sprintf(tmp_out, "%.4f, ", local_time);
+    strcat(csv_out, tmp_out);
     if (PRINT_MODE)
         printf("Done Hashing words! Time taken: %f\n", local_time);
     /**********************************************************************************************************/
@@ -121,6 +130,8 @@ int main(int argc, char **argv)
         reduce(&hash_tables[1], hash_tables[0], QUEUE_TABLE_COUNT - 1, i);
     }
     local_time += omp_get_wtime();
+    sprintf(tmp_out, "%.4f, ", local_time);
+    strcat(csv_out, tmp_out);
     if (PRINT_MODE)
         printf("Done Reducing! Time taken: %f\n", local_time);
     /**********************************************************************************************************/
@@ -132,6 +143,8 @@ int main(int argc, char **argv)
     // printTable(final_table);
     writeFullTable(hash_tables[0], "./output/serial/0.txt");
     local_time += omp_get_wtime();
+    sprintf(tmp_out, "%.4f, ", local_time);
+    strcat(csv_out, tmp_out);
     if (PRINT_MODE)
         printf("Done Writing! Time taken: %f\n", local_time);
     /**********************************************************************************************************/
@@ -154,7 +167,11 @@ int main(int argc, char **argv)
     /**********************************************************************************************************/
 
     global_time += omp_get_wtime();
-    printf("\nTotal time taken for the execution: %f\n", global_time);
+    sprintf(tmp_out, "%.4f, ", global_time);
+    strcat(csv_out, tmp_out);
+    if (PRINT_MODE)
+        printf("\nTotal time taken for the execution: %f\n", global_time);
+    printf("Num_files, Hash_size, Qfiles_time, Qlines_time, HashW_time, Reduce_time, Write_time, Total_time,\n%s\n\n", csv_out);
 
     return EXIT_SUCCESS;
 }
