@@ -20,6 +20,7 @@
 #define HASH_CAPACITY 50000
 
 #define REPEAT_FILES 10
+#define BREAK_RM 0
 
 extern int errno;
 int DEBUG_MODE = 0;
@@ -177,35 +178,62 @@ int main(int argc, char **argv)
 
     // this indicates the end of reading section of the MPI
 
-    local_time = -omp_get_wtime();
     struct Queue *queue = createQueue();
     struct hashtable *hash_table = createtable(HASH_CAPACITY);
 
     // this can be run with multiple threads -- can be changed later
     char *file;
-    while ((file = strtok_r(file_names, ",", &file_names)))
-    {
-        if (strlen(file) > 0)
+    if (BREAK_RM) {
+        local_time = -omp_get_wtime();
+        while ((file = strtok_r(file_names, ",", &file_names)))
         {
-            queue->finished = 0;
-            populateQueue(queue, file);         // read file
-            queue->finished = 1;
-            populateHashMap(queue, hash_table); // map file
+            if (strlen(file) > 0)
+            {
+                queue->finished = 0;
+                populateQueue(queue, file);         // read file
+                queue->finished = 1;
+            }
         }
+        MPI_Barrier(MPI_COMM_WORLD);
+        local_time += omp_get_wtime();
+        global_time += local_time;
+        sprintf(tmp_out, "%.4f, ", local_time);
+        strcat(csv_out, tmp_out);
+
+        local_time = -omp_get_wtime();
+        populateHashMap(queue, hash_table); // map file
+        MPI_Barrier(MPI_COMM_WORLD);
+        local_time += omp_get_wtime();
+        global_time += local_time;
+        sprintf(tmp_out, "%.4f, ", local_time);
+        strcat(csv_out, tmp_out);
+
+    } else {
+        local_time = -omp_get_wtime();
+        while ((file = strtok_r(file_names, ",", &file_names)))
+        {
+            if (strlen(file) > 0)
+            {
+                queue->finished = 0;
+                populateQueue(queue, file);         // read file
+                queue->finished = 1;
+                populateHashMap(queue, hash_table); // map file
+            }
+        }
+
+        MPI_Barrier(MPI_COMM_WORLD);
+        local_time += omp_get_wtime();
+        global_time += local_time;
+        sprintf(tmp_out, "%.4f, ", local_time);
+        strcat(csv_out, tmp_out);
     }
 
     MPI_Barrier(MPI_COMM_WORLD);
-    local_time += omp_get_wtime();
-    global_time += local_time;
-    sprintf(tmp_out, "%.4f, ", local_time);
-    strcat(csv_out, tmp_out);
 
-    // ---------------------------------------------------------------------
-
-    /*
+    /*******************************************************************************
     * add reduction - hashtable should be communicated amoung the
     * processes to come up with the final reduction
-    */
+    ********************************************************************************/
     local_time = -omp_get_wtime();
     int h_space = HASH_CAPACITY / size;
     int h_start = h_space * pid;
@@ -302,8 +330,13 @@ int main(int argc, char **argv)
     
     // fprintf(stdout, "total time taken for the execution: %f\n", global_time);
     if (pid == 0) {
-        fprintf(stdout, "Num_Files, Hash_size, Num_Processes, FS_Time, Read_Map, Reduce, Write, Total\n%s\n\n", 
+        if (BREAK_RM) {
+            fprintf(stdout, "Num_Files, Hash_size, Num_Processes, FS_Time, Read, Map, Reduce, Write, Total\n%s\n\n", 
                 csv_out);
+        } else {
+            fprintf(stdout, "Num_Files, Hash_size, Num_Processes, FS_Time, Read_Map, Reduce, Write, Total\n%s\n\n", 
+                csv_out);
+        }
     }
 
     MPI_Finalize();
