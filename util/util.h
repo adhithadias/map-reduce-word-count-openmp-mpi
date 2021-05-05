@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <dirent.h>
 #include <unistd.h>
+#include <time.h>
 #include "queue.h"
 
 extern int errno;
@@ -173,6 +174,7 @@ void populateQueueWL(struct Queue *q, char *file_name, omp_lock_t *queuelock)
 void populateHashMapWL(struct Queue *q, struct hashtable *hashMap, omp_lock_t *queuelock)
 {
     struct node *node = NULL;
+    struct QNode *temp = NULL;
     // wait until queue is good to start. Useful for parallel accesses.
     while (q == NULL)
         continue;
@@ -184,11 +186,15 @@ void populateHashMapWL(struct Queue *q, struct hashtable *hashMap, omp_lock_t *q
             omp_unset_lock(queuelock);
             continue;
         }
-        char str[q->front->len];
-        strcpy(str, q->front->line);
-        struct QNode *temp = deQueueData(q);
+        temp = q->front;
+        q->front = q->front->next;
+        // If front becomes NULL, then change rear also as NULL
+        if (q->front == NULL)
+            q->rear = NULL;
         omp_unset_lock(queuelock);
 
+        char str[temp->len];
+        strcpy(str, temp->line);
         // separated out freeing part to save some time lost due to locking
         if (temp != NULL) {
             free(temp->line);
