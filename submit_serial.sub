@@ -1,7 +1,0 @@
-#!/bin/bash
-# FILENAME:  submit_serial.sub
-#SBATCH --nodes=1
-#SBATCH --ntasks=1
-#SBATCH --time=00:02:00
-
-./serial -r 20
