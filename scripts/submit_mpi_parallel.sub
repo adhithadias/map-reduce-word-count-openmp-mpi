@@ -1,0 +1,36 @@
+#!/bin/bash
+# FILENAME: submit_mpi_parallel.sub
+#SBATCH  --nodes=1
+#SBATCH  --ntasks-per-node=20
+#SBATCH  --time=00:04:00
+#SBATCH  -A scholar
+
+srun --mpi=pmi2 -n 1 ./mpi_parallel -r 10
+srun --mpi=pmi2 -n 2 ./mpi_parallel -r 10
+srun --mpi=pmi2 -n 4 ./mpi_parallel -r 10
+srun --mpi=pmi2 -n 8 ./mpi_parallel -r 10
+srun --mpi=pmi2 -n 16 ./mpi_parallel -r 10
+
+srun --mpi=pmi2 -n 1 ./mpi_parallel -r 20
+srun --mpi=pmi2 -n 2 ./mpi_parallel -r 20
+srun --mpi=pmi2 -n 4 ./mpi_parallel -r 20
+srun --mpi=pmi2 -n 8 ./mpi_parallel -r 20
+srun --mpi=pmi2 -n 16 ./mpi_parallel -r 20
+
+srun --mpi=pmi2 -n 1 ./mpi_parallel -r 30
+srun --mpi=pmi2 -n 2 ./mpi_parallel -r 30
+srun --mpi=pmi2 -n 4 ./mpi_parallel -r 30
+srun --mpi=pmi2 -n 8 ./mpi_parallel -r 30
+srun --mpi=pmi2 -n 16 ./mpi_parallel -r 30
+
+srun --mpi=pmi2 -n 1 ./mpi_parallel -r 40
+srun --mpi=pmi2 -n 2 ./mpi_parallel -r 40
+srun --mpi=pmi2 -n 4 ./mpi_parallel -r 40
+srun --mpi=pmi2 -n 8 ./mpi_parallel -r 40
+srun --mpi=pmi2 -n 16 ./mpi_parallel -r 40
+
+srun --mpi=pmi2 -n 1 ./mpi_parallel -r 50
+srun --mpi=pmi2 -n 2 ./mpi_parallel -r 50
+srun --mpi=pmi2 -n 4 ./mpi_parallel -r 50
+srun --mpi=pmi2 -n 8 ./mpi_parallel -r 50
+srun --mpi=pmi2 -n 16 ./mpi_parallel -r 50

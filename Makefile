@@ -36,6 +36,9 @@ omp-par-read-map:
 mpi:
 	mpicc -std=c11 -std=gnu99  -fopenmp -o mpi_parallel mpi_parallel.c
 
+mpi-openmp:
+	mpicc -std=c11 -std=gnu99  -fopenmp -o mpi_openmp mpi_openmp.c
+
 clean:
 	@echo "removing executables.."
 	$(RM) *.o *~ $(EXECS)

@@ -1,8 +1,8 @@
 #!/bin/bash
 # FILENAME:  submit_parallel.sub
 #SBATCH --nodes=1
-#SBATCH --ntasks=20
+#SBATCH --ntasks=16
 #SBATCH --time=00:02:00
 
-export OMP_NUM_THREADS=20
-./parallel -r 20 -t 20
+export OMP_NUM_THREADS=16
+./openmp

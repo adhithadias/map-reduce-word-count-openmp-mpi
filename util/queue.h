@@ -39,11 +39,8 @@ struct Queue *createQueue()
 	return q;
 }
 
-void enQueue(struct Queue *q, char *line, size_t len)
+void enQueueData(struct Queue *q, struct QNode *temp)
 {
-	// Create a new LL node
-	struct QNode *temp = newNode(line, len);
-
 	// If queue is empty, then new node is front and rear both
 	if (q->rear == NULL)
 	{
@@ -56,11 +53,11 @@ void enQueue(struct Queue *q, char *line, size_t len)
 	q->rear = temp;
 }
 
-void deQueue(struct Queue *q)
+struct QNode *deQueueData(struct Queue *q)
 {
 	// If queue is empty, return NULL.
 	if (q->front == NULL)
-		return;
+		return NULL;
 
 	// Store previous front and move front one node ahead
 	struct QNode *temp = q->front;
@@ -70,6 +67,23 @@ void deQueue(struct Queue *q)
 	// If front becomes NULL, then change rear also as NULL
 	if (q->front == NULL)
 		q->rear = NULL;
+
+	return temp;
+}
+
+void enQueue(struct Queue *q, char *line, size_t len)
+{
+	// Create a new LL node
+	struct QNode *temp = newNode(line, len);
+	enQueueData(q, temp);
+}
+
+void deQueue(struct Queue *q)
+{
+	struct QNode *temp = deQueueData(q);
+	if (temp == NULL) {
+		return;
+	}
 
 	free(temp->line);
 	free(temp);

@@ -19,6 +19,10 @@
 #define WORD_MAX_LENGTH 50
 #define HASH_CAPACITY 50000
 
+#define REPEAT_FILES 10
+#define BREAK_RM 0
+
+extern int errno;
 int DEBUG_MODE = 0;
 int PRINT_MODE = 1;
 
@@ -29,6 +33,29 @@ typedef struct
     char word[WORD_MAX_LENGTH];
 } pair;
 
+
+int args_parse(int argc, char **argv, char *files_dir, int *repeat_files)
+{
+    // https://stackoverflow.com/questions/17877368/getopt-passing-string-parameter-for-argument
+    int opt;
+    while ((opt = getopt(argc, argv, "d:r:g")) != -1)
+    {
+        switch (opt)
+        {
+        case 'd':
+            strcpy(files_dir, optarg);
+            break;
+        case 'r':
+            *repeat_files = (int)atol(optarg);
+            break;
+        case ':':
+            fprintf(stderr, "Option -%c requires an argument to be given\n", optopt);
+            return -1;
+        }
+    }
+    return 0;
+}
+
 int main(int argc, char **argv)
 {
     MPI_Init(&argc, &argv);
@@ -38,11 +65,17 @@ int main(int argc, char **argv)
     MPI_Comm_rank(MPI_COMM_WORLD, &pid);
     MPI_Get_processor_name(p_name, &p_name_len);
 
-    char files_dir[] = "./files"; // TODO: This should be taken from argv
+    double global_time = 0;
+    double local_time = 0;
+    char csv_out[400] = "";
+    char tmp_out[200] = "";
 
-    double time = -omp_get_wtime();
-    /* file outputs for processes */
-    // declare a file
+    char files_dir[] = "./files"; // TODO: This should be taken from argv
+    int repeat_files = REPEAT_FILES;
+
+    int arg_parse = args_parse(argc, argv, files_dir, &repeat_files);
+
+    local_time = -omp_get_wtime();
     FILE *outfile;
     // open a file whose name is based on the pid
     char buf[16];
@@ -70,7 +103,17 @@ int main(int argc, char **argv)
     if (pid == 0)
     {
         file_name_queue = createQueue();
-        file_count = get_file_list(file_name_queue, files_dir);
+
+        for (int i = 0; i < repeat_files; i++)
+        {
+            int files = get_file_list(file_name_queue, files_dir);
+            if (files == -1)
+            {
+                printf("Check input directory and rerun! Exiting!\n");
+                return 1;
+            }
+            file_count += files;
+        }
 
         int num_files_to_send = file_count / size;
         int spare = file_count % size;
@@ -125,11 +168,14 @@ int main(int argc, char **argv)
         MPI_Get_count(&status, MPI_CHAR, &recv_len);
     }
 
-    fprintf(outfile,
-            "received file name [%s] to pid %d from process 0, recv len %d\n",
-            file_names, pid, recv_len);
+    // fprintf(outfile, "received file name [%s] to pid %d from process 0, recv len %d\n", file_names, pid, recv_len);
 
     MPI_Barrier(MPI_COMM_WORLD);
+    local_time += omp_get_wtime();
+    global_time += local_time;
+    sprintf(tmp_out, "%d, %d, %d, %.4f, ", file_count, HASH_CAPACITY, size, local_time);
+    strcat(csv_out, tmp_out);
+
     // this indicates the end of reading section of the MPI
 
     struct Queue *queue = createQueue();
@@ -137,30 +183,62 @@ int main(int argc, char **argv)
 
     // this can be run with multiple threads -- can be changed later
     char *file;
-    while ((file = strtok_r(file_names, ",", &file_names)))
-    {
-        if (strlen(file) > 0)
+    if (BREAK_RM) {
+        local_time = -omp_get_wtime();
+        while ((file = strtok_r(file_names, ",", &file_names)))
         {
-            fprintf(outfile, "file [%s]\n", file);
-            queue->finished = 0;
-            populateQueue(queue, file);         // read file
-            queue->finished = 1;
-            populateHashMap(queue, hash_table); // map file
+            if (strlen(file) > 0)
+            {
+                queue->finished = 0;
+                populateQueue(queue, file);         // read file
+                queue->finished = 1;
+            }
         }
+        MPI_Barrier(MPI_COMM_WORLD);
+        local_time += omp_get_wtime();
+        global_time += local_time;
+        sprintf(tmp_out, "%.4f, ", local_time);
+        strcat(csv_out, tmp_out);
+
+        local_time = -omp_get_wtime();
+        populateHashMap(queue, hash_table); // map file
+        MPI_Barrier(MPI_COMM_WORLD);
+        local_time += omp_get_wtime();
+        global_time += local_time;
+        sprintf(tmp_out, "%.4f, ", local_time);
+        strcat(csv_out, tmp_out);
+
+    } else {
+        local_time = -omp_get_wtime();
+        while ((file = strtok_r(file_names, ",", &file_names)))
+        {
+            if (strlen(file) > 0)
+            {
+                queue->finished = 0;
+                populateQueue(queue, file);         // read file
+                queue->finished = 1;
+                populateHashMap(queue, hash_table); // map file
+            }
+        }
+
+        MPI_Barrier(MPI_COMM_WORLD);
+        local_time += omp_get_wtime();
+        global_time += local_time;
+        sprintf(tmp_out, "%.4f, ", local_time);
+        strcat(csv_out, tmp_out);
     }
 
     MPI_Barrier(MPI_COMM_WORLD);
 
-    // ---------------------------------------------------------------------
-
-    /*
+    /*******************************************************************************
     * add reduction - hashtable should be communicated amoung the
     * processes to come up with the final reduction
-    */
+    ********************************************************************************/
+    local_time = -omp_get_wtime();
     int h_space = HASH_CAPACITY / size;
     int h_start = h_space * pid;
     int h_end = h_space * (pid + 1);
-    fprintf(outfile, "start [%d] end [%d]\n", h_start, h_end);
+    // fprintf(outfile, "start [%d] end [%d]\n", h_start, h_end);
     // [0, HASH_CAPACITY/size] values from all the processes should be sent to 0th
     // process [HASH_CAPACITY/size, HASH_CAPACITY/size*2] values from all the ps should be
     // sent to 1st process likewise all data should be shared among the processes
@@ -204,10 +282,9 @@ int main(int argc, char **argv)
                 }
             }
 
-            fprintf(outfile, "total words to send: %d\n", j);
-
+            // fprintf(outfile, "total words to send: %d\n", j);
             MPI_Send(pairs, j, istruct, k, TAG_COMM_PAIR_LIST, MPI_COMM_WORLD);
-            fprintf(outfile, "total words sent: %d\n", j);
+            // fprintf(outfile, "total words sent: %d\n", j);
         }
         else if (pid == k)
         {
@@ -218,8 +295,8 @@ int main(int argc, char **argv)
                 MPI_Recv(recv_pairs, HASH_CAPACITY, istruct, MPI_ANY_SOURCE,
                          TAG_COMM_PAIR_LIST, MPI_COMM_WORLD, &status);
                 MPI_Get_count(&status, istruct, &recv_j);
-                fprintf(outfile, "total words to received: %d from source: %d\n",
-                        recv_j, status.MPI_SOURCE);
+                // fprintf(outfile, "total words to received: %d from source: %d\n",
+                //         recv_j, status.MPI_SOURCE);
 
                 for (int i = 0; i < recv_j; i++)
                 {
@@ -234,14 +311,33 @@ int main(int argc, char **argv)
     }
 
     MPI_Barrier(MPI_COMM_WORLD);
+    local_time += omp_get_wtime();
+    global_time += local_time;
+    sprintf(tmp_out, "%.4f, ", local_time);
+    strcat(csv_out, tmp_out);
 
     // --------------------------------------------------------------
-
+    local_time = -omp_get_wtime();
     // write function should be only called for the respective section of the
     writeTable(hash_table, outfile, h_start, h_end);
     // writeTable(hash_table, outfile, 0, hash_table->tablesize);
-    time += omp_get_wtime();
-    fprintf(outfile, "total time taken for the execution: %f\n", time);
+    local_time += omp_get_wtime();
+    global_time += local_time;
+    sprintf(tmp_out, "%.4f, ", local_time);
+    strcat(csv_out, tmp_out);
+    sprintf(tmp_out, "%.4f", global_time);
+    strcat(csv_out, tmp_out);
+    
+    // fprintf(stdout, "total time taken for the execution: %f\n", global_time);
+    if (pid == 0) {
+        if (BREAK_RM) {
+            fprintf(stdout, "Num_Files, Hash_size, Num_Processes, FS_Time, Read, Map, Reduce, Write, Total\n%s\n\n", 
+                csv_out);
+        } else {
+            fprintf(stdout, "Num_Files, Hash_size, Num_Processes, FS_Time, Read_Map, Reduce, Write, Total\n%s\n\n", 
+                csv_out);
+        }
+    }
 
     MPI_Finalize();
     return 0;

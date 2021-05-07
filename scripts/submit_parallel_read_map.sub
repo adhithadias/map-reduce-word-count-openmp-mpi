@@ -1,0 +1,31 @@
+#!/bin/bash
+# FILENAME:  submit_parallel_read_map.sub
+#SBATCH --nodes=1
+#SBATCH --ntasks=20
+#SBATCH --time=00:15:00
+# Requesting 20 tasks for running below tasks
+
+./parallel_read_map_new -r 20 -t 1
+./parallel_read_map_new -r 30 -t 1
+./parallel_read_map_new -r 40 -t 1
+./parallel_read_map_new -r 50 -t 1
+./parallel_read_map_new -r 20 -t 2
+./parallel_read_map_new -r 30 -t 2
+./parallel_read_map_new -r 40 -t 2
+./parallel_read_map_new -r 50 -t 2
+./parallel_read_map_new -r 20 -t 4
+./parallel_read_map_new -r 30 -t 4
+./parallel_read_map_new -r 40 -t 4
+./parallel_read_map_new -r 50 -t 4
+./parallel_read_map_new -r 20 -t 8
+./parallel_read_map_new -r 30 -t 8
+./parallel_read_map_new -r 40 -t 8
+./parallel_read_map_new -r 50 -t 8
+./parallel_read_map_new -r 20 -t 16
+./parallel_read_map_new -r 30 -t 16
+./parallel_read_map_new -r 40 -t 16
+./parallel_read_map_new -r 50 -t 16
+./parallel_read_map_new -r 20 -t 20
+./parallel_read_map_new -r 30 -t 20
+./parallel_read_map_new -r 40 -t 20
+./parallel_read_map_new -r 50 -t 20

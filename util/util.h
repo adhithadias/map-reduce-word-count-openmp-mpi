@@ -5,12 +5,22 @@
 #include <stdio.h>
 #include <dirent.h>
 #include <unistd.h>
+#include <time.h>
 #include "queue.h"
+#include <time.h>
 
 extern int errno;
 extern int DEBUG_MODE;
 
 #define FILE_NAME_BUF_SIZE 50
+
+void delay(int milli_seconds)
+{  
+    // Storing start time
+    clock_t start_time = clock();
+    // looping till required time is not achieved
+    while (clock() < start_time + milli_seconds);
+}
 
 int get_file_list(struct Queue *file_name_queue, char *dirpath)
 {
@@ -45,8 +55,12 @@ int get_file_list(struct Queue *file_name_queue, char *dirpath)
         strcat(file_name, in_file->d_name);
         if (DEBUG_MODE)
             printf("Queing file: %s\n", file_name);
-        enQueue(file_name_queue, file_name, strlen(file_name));
-        file_count++;
+        #pragma omp critical
+        {
+            // To be executed only by one thread at a time as there is a single queue
+            enQueue(file_name_queue, file_name, strlen(file_name));
+            file_count++;
+        }
     }
     if (DEBUG_MODE)
         printf("Done Queing all files\n\n");
@@ -106,6 +120,10 @@ void populateHashMap(struct Queue *q, struct hashtable *hashMap)
         continue;
     while (q->front || !q->finished)
     {
+        if (q->front == NULL) {
+            delay(10);
+            continue;
+        }
         char str[q->front->len];
         strcpy(str, q->front->line);
         char *token;
@@ -125,10 +143,191 @@ void populateHashMap(struct Queue *q, struct hashtable *hashMap)
     }
 }
 
-void reduce(struct hashtable **hash_tables, struct hashtable *final_table, int file_count, int location)
+void populateQueueWL(struct Queue *q, char *file_name, omp_lock_t *queuelock)
+{
+    // file open operation
+    FILE *filePtr;
+    if ((filePtr = fopen(file_name, "r")) == NULL)
+    {
+        fprintf(stderr, "could not open file: [%p], err: %d, %s\n", filePtr, errno, strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+
+    // read line by line from the file and add to the queue
+    size_t len = 0;
+    char *line = NULL;
+    int line_count = 0;
+    while (getline(&line, &len, filePtr) != -1)
+    {
+        // separated out the node creation to save some time lost due to locking
+        struct QNode *temp = newNode(line, len);
+
+        // enQueue section should be locked --------------------------------------------------------------------- lock this
+        omp_set_lock(queuelock);
+        enQueueData(q, temp);
+        omp_unset_lock(queuelock);
+
+        line_count++;
+    }
+    // printf("line count %d, %s\n", line_count, file_name);
+    fclose(filePtr);
+    free(line);
+}
+
+void populateQueueWL_ML(struct Queue *q, char *file_name, omp_lock_t *queuelock)
+{
+    // file open operation
+    FILE *filePtr;
+    if ((filePtr = fopen(file_name, "r")) == NULL)
+    {
+        fprintf(stderr, "could not open file: [%p], err: %d, %s\n", filePtr, errno, strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+
+    // read line by line from the file and add to the queue
+    size_t len = 0;
+    char *line = NULL;
+    int line_count = 0;
+    int file_done = 0;
+    int lines_per_iter = 30;
+    int actual_lines;
+    struct QNode **temp_nodes;
+    temp_nodes = (struct QNode **) malloc(sizeof(struct QNode *) * lines_per_iter);
+    while (file_done != 1)
+    {
+        actual_lines = 0;
+        for (int i=0; i<lines_per_iter; i++){
+            if (getline(&line, &len, filePtr) == -1) {
+                file_done = 1;
+                break;
+            } else {
+                // separated out the node creation to save some time lost due to locking
+                temp_nodes[i] = newNode(line, len);
+                actual_lines++;
+                line_count++;
+            }
+        }
+        omp_set_lock(queuelock);
+        for (int i=0; i<actual_lines; i++){
+            if (temp_nodes[i] != NULL)
+                enQueueData(q, temp_nodes[i]);
+        }
+        omp_unset_lock(queuelock);
+
+    }
+    // printf("line count %d, %s\n", line_count, file_name);
+    fclose(filePtr);
+    free(line);
+}
+
+void populateHashMapWL(struct Queue *q, struct hashtable *hashMap, omp_lock_t *queuelock)
 {
     struct node *node = NULL;
-    for (int i = 0; i < file_count; i++)
+    struct QNode *temp = NULL;
+    // wait until queue is good to start. Useful for parallel accesses.
+    while (q == NULL)
+        continue;
+    while (q->front || !q->finished)
+    {
+        // this block should be locked ------------------------------------------------------------------------------//
+        omp_set_lock(queuelock);
+        if (q->front == NULL) {
+            omp_unset_lock(queuelock);
+            continue;
+        }
+
+        temp = q->front;
+        q->front = q->front->next;
+        // If front becomes NULL, then change rear also as NULL
+        if (q->front == NULL)
+            q->rear = NULL;
+
+        omp_unset_lock(queuelock);
+        char str[temp->len];
+        strcpy(str, temp->line);
+
+        // separated out freeing part to save some time lost due to locking
+        if (temp != NULL) {
+            free(temp->line);
+            free(temp);
+        }
+
+        
+        char *token;
+        char *rest = str;
+        // https://www.geeksforgeeks.org/strtok-strtok_r-functions-c-examples/
+        while ((token = strtok_r(rest, " ", &rest)))
+        {
+            char *word = format_string(token);
+            if (strlen(word) > 0)
+            {
+                node = add(hashMap, word, 0);
+                node->frequency++;
+            }
+            free(word);
+        }
+    }
+}
+
+// void populateHashMapWL_ML(struct Queue *q, struct hashtable *hashMap, omp_lock_t *queuelock)
+// {   // Experimental Code For multi line hashing from the queue.
+//     struct node *node = NULL;
+//     int lines_per_iter = 30;
+//     struct QNode **temp_nodes;
+//     temp_nodes = (struct QNode **) malloc(sizeof(struct QNode *) * lines_per_iter);
+//     int queue_empty = 0;
+//     int actual_lines;
+//     // wait until queue is good to start. Useful for parallel accesses.
+//     while (q == NULL){
+//         delay(10);
+//         continue;
+//     }
+//     while (q->front || !q->finished) {
+//         // this block should be locked ------------------------------------------------------------------------------//
+//         omp_set_lock(queuelock);
+//         for (int i=0; i<lines_per_iter; i++){
+//             if (q->front == NULL) {
+//                 queue_empty = 1;
+//                 break;
+//             }
+//             actual_lines++;
+//             temp_nodes[i] = deQueueData(q);
+//         }
+//         omp_unset_lock(queuelock);
+//         for (int i=0; i<lines_per_iter; i++){
+//             char str[temp_nodes[i]->len];
+//             strcpy(str, temp_nodes[i]->line);
+//         }
+//         if (queue_empty) {
+//             continue;
+//         }
+//         // separated out freeing part to save some time lost due to locking
+//         for (int i=0; i<lines_per_iter; i++){
+//             if (temp_nodes[i] != NULL) {
+//                 free(temp_nodes[i]->line);
+//                 free(temp_nodes[i]);
+//             }
+        
+//         char *token;
+//         char *rest = str;
+//         // https://www.geeksforgeeks.org/strtok-strtok_r-functions-c-examples/
+//         while ((token = strtok_r(rest, " ", &rest)))
+//         {
+//             char *word = format_string(token);
+//             if (strlen(word) > 0)
+//             {
+//                 node = add(hashMap, word, 0);
+//                 node->frequency++;
+//             }
+//             free(word);
+//         }
+//     }
+// }
+
+void reduce(struct hashtable **hash_tables, struct hashtable *final_table, int num_hashtables, int location)
+{
+    struct node *node = NULL;
+    for (int i = 0; i < num_hashtables; i++)
     {
         if (hash_tables[i] == NULL || hash_tables[i]->table[location] == NULL)
         {
@@ -151,12 +350,12 @@ void reduce(struct hashtable **hash_tables, struct hashtable *final_table, int f
     }
 }
 
-int process_args(int argc, char **argv, char *files_dir, int *repeat_files, int *DEBUG_MODE, int *HASH_SIZE,
-                 int *QUEUE_TABLE_COUNT, int *NUM_THREADS)
+int process_args(int argc, char **argv, char *files_dir, int *repeat_files, int *DEBUG_MODE, int *PRINT_MODE, 
+                 int *HASH_SIZE, int *QUEUE_TABLE_COUNT, int *NUM_THREADS)
 {
     // https://stackoverflow.com/questions/17877368/getopt-passing-string-parameter-for-argument
     int opt;
-    while ((opt = getopt(argc, argv, "d:r:h:q:t:g")) != -1)
+    while ((opt = getopt(argc, argv, "d:r:h:q:t:gp")) != -1)
     {
         switch (opt)
         {
@@ -183,6 +382,10 @@ int process_args(int argc, char **argv, char *files_dir, int *repeat_files, int 
         case 'g':
             printf("Running in debug mode\n");
             *DEBUG_MODE = 1;
+            break;
+        case 'p':
+            printf("Running in print mode\n");
+            *PRINT_MODE = 1;
             break;
         case ':':
             fprintf(stderr, "Option -%c requires an argument to be given\n", optopt);

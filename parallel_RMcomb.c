@@ -65,7 +65,6 @@ int main(int argc, char **argv)
     if (PRINT_MODE)
         printf("Done Queuing %d files! Time taken: %f\n", file_count, local_time);
     /**********************************************************************************************************/
-
     // TODO: This should be an array as in Prof's lecture (Week 4: Uniform distribution of Elements)
     int files_per_qt = file_count / (QUEUE_TABLE_COUNT * NUM_THREADS);
     if (PRINT_MODE)
@@ -75,14 +74,21 @@ int main(int argc, char **argv)
     }
     /********************** Queuing Lines by reading files in the FilesQueue **********************************/
     if (PRINT_MODE)
+    {
         printf("\nQueuing Lines by reading files in the FilesQueue\n");
+        printf("Hashing Words by reading words in the LinesQueue\n");
+        printf("HASH_SIZE: %d\n", HASH_SIZE);
+    }
     local_time = -omp_get_wtime();
     struct Queue **queues;
     queues = (struct Queue **)malloc(sizeof(struct Queue *) * NUM_THREADS);
+    struct hashtable **hash_tables;
+    hash_tables = (struct hashtable **)malloc(sizeof(struct hashtable *) * NUM_THREADS);
     #pragma omp parallel shared(queues) num_threads(NUM_THREADS)
     {
         int i = omp_get_thread_num();
         queues[i] = createQueue();
+        hash_tables[i] = createtable(HASH_SIZE);
         char file_name[FILE_NAME_BUF_SIZE * 3];
         while(file_name_queue->front != NULL) {
             omp_set_lock(&writelock);
@@ -99,35 +105,14 @@ int main(int argc, char **argv)
             populateQueue(queues[i], file_name);         
         }
         queues[i]->finished = 1; //TODO: What is this for?
+        populateHashMap(queues[i], hash_tables[i]);
     }
     omp_destroy_lock(&writelock); // TODO: Can keep this lock if another queue needs to be locked below
     local_time += omp_get_wtime();
     sprintf(tmp_out, "%.4f, ", local_time);
     strcat(csv_out, tmp_out);
     if (PRINT_MODE)
-        printf("Done Populating lines! Time taken: %f\n", local_time);
-    /**********************************************************************************************************/
-
-    /********************** Hashing words by reading words in the LinesQueue **********************************/
-    if (PRINT_MODE)
-    {
-        printf("\nHashing words by reading words in the LinesQueue\n");
-        printf("HASH_SIZE: %d\n", HASH_SIZE);
-    }
-    local_time = -omp_get_wtime();
-    struct hashtable **hash_tables;
-    hash_tables = (struct hashtable **)malloc(sizeof(struct hashtable *) * NUM_THREADS);
-    #pragma omp parallel for shared(queues, hash_tables)
-    for (int i = 0; i < NUM_THREADS; i++)
-    {
-        hash_tables[i] = createtable(HASH_SIZE);
-        populateHashMap(queues[i], hash_tables[i]);
-    }
-    local_time += omp_get_wtime();
-    sprintf(tmp_out, "%.4f, ", local_time);
-    strcat(csv_out, tmp_out);
-    if (PRINT_MODE)
-        printf("Done Hashing words! Time taken: %f\n", local_time);
+        printf("Done Populating lines and Hashing words! Time taken: %f\n", local_time);
     /**********************************************************************************************************/
 
     // consider allocating the memory before execution and during execution
@@ -218,7 +203,7 @@ int main(int argc, char **argv)
     strcat(csv_out, tmp_out);
     if (PRINT_MODE)
         printf("\nTotal time taken for the execution: %f\n", global_time);
-    printf("Num_files, Hash_size, Num_Threads, Qfiles_time, Qlines_time, HashW_time, Reduce_time, Write_time, Total_time,\n%s\n\n", csv_out);
+    printf("Num_files, Hash_size, Num_Threads, Qfiles_time, Qlines_HashW_time, Reduce_time, Write_time, Total_time,\n%s\n\n", csv_out);
 
     return EXIT_SUCCESS;
 }

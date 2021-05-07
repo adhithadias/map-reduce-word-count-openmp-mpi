@@ -1,8 +1,0 @@
-#!/bin/bash
-# FILENAME: submit_mpi_parallel.sub
-#SBATCH  --nodes=1
-#SBATCH  --ntasks-per-node=20
-#SBATCH  --time=00:02:00
-#SBATCH  -A scholar
-
-srun --mpi=pmi2 -n 4 ./mpi_parallel
