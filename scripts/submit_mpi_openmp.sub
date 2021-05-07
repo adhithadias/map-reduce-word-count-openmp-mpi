@@ -1,0 +1,60 @@
+#!/bin/bash
+# FILENAME: submit_mpi_openmp.sub
+#SBATCH  --nodes=4
+#SBATCH  --ntasks-per-node=20
+#SBATCH  --time=00:05:00
+#SBATCH  -A scholar
+
+srun --mpi=pmi2 -n 1 ./mpi_openmp -r 50 -t 2 -b 1
+srun --mpi=pmi2 -n 1 ./mpi_openmp -r 50 -t 4 -b 1
+srun --mpi=pmi2 -n 1 ./mpi_openmp -r 50 -t 8 -b 1
+srun --mpi=pmi2 -n 1 ./mpi_openmp -r 50 -t 16 -b 1
+
+srun --mpi=pmi2 -n 2 ./mpi_openmp -r 50 -t 2 -b 1
+srun --mpi=pmi2 -n 2 ./mpi_openmp -r 50 -t 4 -b 1
+srun --mpi=pmi2 -n 2 ./mpi_openmp -r 50 -t 8 -b 1
+srun --mpi=pmi2 -n 2 ./mpi_openmp -r 50 -t 16 -b 1
+
+srun --mpi=pmi2 -n 4 ./mpi_openmp -r 50 -t 2 -b 1
+srun --mpi=pmi2 -n 4 ./mpi_openmp -r 50 -t 4 -b 1
+srun --mpi=pmi2 -n 4 ./mpi_openmp -r 50 -t 8 -b 1
+srun --mpi=pmi2 -n 4 ./mpi_openmp -r 50 -t 16 -b 1
+
+srun --mpi=pmi2 -n 8 ./mpi_openmp -r 50 -t 2 -b 1
+srun --mpi=pmi2 -n 8 ./mpi_openmp -r 50 -t 4 -b 1
+srun --mpi=pmi2 -n 8 ./mpi_openmp -r 50 -t 8 -b 1
+
+srun --mpi=pmi2 -n 16 ./mpi_openmp -r 50 -t 2 -b 1
+srun --mpi=pmi2 -n 16 ./mpi_openmp -r 50 -t 4 -b 1
+
+
+##################################################
+
+
+srun --mpi=pmi2 -n 1 ./mpi_openmp -r 50 -t 1 -b 0
+srun --mpi=pmi2 -n 1 ./mpi_openmp -r 50 -t 2 -b 0
+srun --mpi=pmi2 -n 1 ./mpi_openmp -r 50 -t 4 -b 0
+srun --mpi=pmi2 -n 1 ./mpi_openmp -r 50 -t 8 -b 0
+srun --mpi=pmi2 -n 1 ./mpi_openmp -r 50 -t 16 -b 0
+
+srun --mpi=pmi2 -n 2 ./mpi_openmp -r 50 -t 1 -b 0
+srun --mpi=pmi2 -n 2 ./mpi_openmp -r 50 -t 2 -b 0
+srun --mpi=pmi2 -n 2 ./mpi_openmp -r 50 -t 4 -b 0
+srun --mpi=pmi2 -n 2 ./mpi_openmp -r 50 -t 8 -b 0
+srun --mpi=pmi2 -n 2 ./mpi_openmp -r 50 -t 16 -b 0
+
+srun --mpi=pmi2 -n 4 ./mpi_openmp -r 50 -t 1 -b 0
+srun --mpi=pmi2 -n 4 ./mpi_openmp -r 50 -t 2 -b 0
+srun --mpi=pmi2 -n 4 ./mpi_openmp -r 50 -t 4 -b 0
+srun --mpi=pmi2 -n 4 ./mpi_openmp -r 50 -t 8 -b 0
+srun --mpi=pmi2 -n 4 ./mpi_openmp -r 50 -t 16 -b 0
+
+srun --mpi=pmi2 -n 8 ./mpi_openmp -r 50 -t 1 -b 0
+srun --mpi=pmi2 -n 8 ./mpi_openmp -r 50 -t 2 -b 0
+srun --mpi=pmi2 -n 8 ./mpi_openmp -r 50 -t 4 -b 0
+srun --mpi=pmi2 -n 8 ./mpi_openmp -r 50 -t 8 -b 0
+
+srun --mpi=pmi2 -n 16 ./mpi_openmp -r 50 -t 1 -b 0
+srun --mpi=pmi2 -n 16 ./mpi_openmp -r 50 -t 2 -b 0
+srun --mpi=pmi2 -n 16 ./mpi_openmp -r 50 -t 4 -b 0
+
