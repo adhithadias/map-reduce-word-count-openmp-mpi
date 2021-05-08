@@ -3,14 +3,21 @@
 
 # Running the program
 ```bash
-# For making the serial executable
+# For making the serial executable and running
 make serial
+sbatch ./scripts/submit_serial.sub
 
-# For making the OpenMP executable
+# For making the OpenMP executable and running 
 make openmp
+sbatch ./scripts/submit_parallel.sub
 
-# For making the MPI executable
+# For making the MPI executable and running
 make mpi
+sbatch ./scripts/submit_mpi_parallel.sub
+
+# For making the MPI executable and running 
+make mpi-openmp
+sbatch ./scripts/submit_mpi_openmp.sub
 
 # For cleaning all executables
 make clean
